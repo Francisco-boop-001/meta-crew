@@ -1,0 +1,19 @@
+interpret_request_task:
+  description: "Parse and fully interpret the user's crew design request into a structured technical specification."
+  expected_output: "A clear and detailed technical specification outlining requirements for the specialized Crew."
+  agent: "knowledge_specialist"
+
+research_task:
+  description: "Conduct targeted research to gather implementable, verifiable strategies from external resources."
+  expected_output: "A detailed research report with integration strategies and best practices."
+  agent: "research_analyst"
+
+design_task:
+  description: "Design executable YAML configurations and Python code structure for the specialized Crew based on the technical specification and research findings."
+  expected_output: "A complete blueprint in YAML and Python for the new specialized Crew."
+  agent: "systems_architect"
+
+validation_task:
+  description: "Review and validate the blueprint to ensure strict adherence to CrewAI framework best practices and coding guidelines."
+  expected_output: "A validated and approved blueprint for the specialized Crew."
+  agent: "validator"
