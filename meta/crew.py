@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, task, crew
+from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
 
 class MetaCrew(CrewBase):
     """
@@ -45,6 +46,11 @@ class MetaCrew(CrewBase):
 
     @crew
     def crew(self) -> Crew:
+        # Load CrewAI documentation from the knowledge directory
+        with open("knowledge/CrewAI_docs", "r", encoding="utf-8") as f:
+            crewai_docs = f.read()
+        knowledge_source = StringKnowledgeSource(content=crewai_docs)
+        
         return Crew(
             agents=[
                 self.knowledge_specialist(),
@@ -59,7 +65,8 @@ class MetaCrew(CrewBase):
                 self.validation_task()
             ],
             process=Process.sequential,
-            verbose=True
+            verbose=True,
+            knowledge_sources=[knowledge_source]
         )
 
 if __name__ == "__main__":

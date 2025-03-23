@@ -1,0 +1,2850 @@
+    </Step>
+</Steps>
+
+## Example Usage
+
+Here's a detailed example of creating an agent with code execution capabilities and using it in a task:
+
+```python Code
+from crewai import Agent, Task, Crew
+
+# Create an agent with code execution enabled
+coding_agent = Agent(
+    role="Python Data Analyst",
+    goal="Analyze data and provide insights using Python",
+    backstory="You are an experienced data analyst with strong Python skills.",
+    allow_code_execution=True
+)
+
+# Create a task that requires code execution
+data_analysis_task = Task(
+    description="Analyze the given dataset and calculate the average age of participants.",
+    agent=coding_agent
+)
+
+# Create a crew and add the task
+analysis_crew = Crew(
+    agents=[coding_agent],
+    tasks=[data_analysis_task]
+)
+
+# Execute the crew
+result = analysis_crew.kickoff()
+
+print(result)
+```
+
+In this example, the `coding_agent` can write and execute Python code to perform data analysis tasks.
+
+
+---
+File: /how-to/conditional-tasks.mdx
+---
+
+---
+title: Conditional Tasks
+description: Learn how to use conditional tasks in a crewAI kickoff
+icon: diagram-subtask
+---
+
+## Introduction
+
+Conditional Tasks in crewAI allow for dynamic workflow adaptation based on the outcomes of previous tasks. 
+This powerful feature enables crews to make decisions and execute tasks selectively, enhancing the flexibility and efficiency of your AI-driven processes.
+
+## Example Usage
+
+```python Code
+from typing import List
+from pydantic import BaseModel
+from crewai import Agent, Crew
+from crewai.tasks.conditional_task import ConditionalTask
+from crewai.tasks.task_output import TaskOutput
+from crewai.task import Task
+from crewai_tools import SerperDevTool
+
+# Define a condition function for the conditional task
+# If false, the task will be skipped, if true, then execute the task.
+def is_data_missing(output: TaskOutput) -> bool:
+    return len(output.pydantic.events) < 10  # this will skip this task
+
+# Define the agents
+data_fetcher_agent = Agent(
+    role="Data Fetcher",
+    goal="Fetch data online using Serper tool",
+    backstory="Backstory 1",
+    verbose=True,
+    tools=[SerperDevTool()]
+)
+
+data_processor_agent = Agent(
+    role="Data Processor",
+    goal="Process fetched data",
+    backstory="Backstory 2",
+    verbose=True
+)
+
+summary_generator_agent = Agent(
+    role="Summary Generator",
+    goal="Generate summary from fetched data",
+    backstory="Backstory 3",
+    verbose=True
+)
+
+class EventOutput(BaseModel):
+    events: List[str]
+
+task1 = Task(
+    description="Fetch data about events in San Francisco using Serper tool",
+    expected_output="List of 10 things to do in SF this week",
+    agent=data_fetcher_agent,
+    output_pydantic=EventOutput,
+)
+
+conditional_task = ConditionalTask(
+    description="""
+        Check if data is missing. If we have less than 10 events,
+        fetch more events using Serper tool so that
+        we have a total of 10 events in SF this week..
+        """,
+    expected_output="List of 10 Things to do in SF this week",
+    condition=is_data_missing,
+    agent=data_processor_agent,
+)
+
+task3 = Task(
+    description="Generate summary of events in San Francisco from fetched data",
+    expected_output="A complete report on the customer and their customers and competitors, including their demographics, preferences, market positioning and audience engagement.",
+    agent=summary_generator_agent,
+)
+
+# Create a crew with the tasks
+crew = Crew(
+    agents=[data_fetcher_agent, data_processor_agent, summary_generator_agent],
+    tasks=[task1, conditional_task, task3],
+    verbose=True,
+    planning=True
+)
+
+# Run the crew
+result = crew.kickoff()
+print("results", result)
+```
+
+
+---
+File: /how-to/create-custom-tools.mdx
+---
+
+---
+title: Create Custom Tools
+description: Comprehensive guide on crafting, using, and managing custom tools within the CrewAI framework, including new functionalities and error handling.
+icon: hammer
+---
+
+## Creating and Utilizing Tools in CrewAI
+
+This guide provides detailed instructions on creating custom tools for the CrewAI framework and how to efficiently manage and utilize these tools,
+incorporating the latest functionalities such as tool delegation, error handling, and dynamic tool calling. It also highlights the importance of collaboration tools,
+enabling agents to perform a wide range of actions.
+
+### Subclassing `BaseTool`
+
+To create a personalized tool, inherit from `BaseTool` and define the necessary attributes, including the `args_schema` for input validation, and the `_run` method.
+
+```python Code
+from typing import Type
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+
+class MyToolInput(BaseModel):
+    """Input schema for MyCustomTool."""
+    argument: str = Field(..., description="Description of the argument.")
+
+class MyCustomTool(BaseTool):
+    name: str = "Name of my tool"
+    description: str = "What this tool does. It's vital for effective utilization."
+    args_schema: Type[BaseModel] = MyToolInput
+
+    def _run(self, argument: str) -> str:
+        # Your tool's logic here
+        return "Tool's result"
+```
+
+### Using the `tool` Decorator
+
+Alternatively, you can use the tool decorator `@tool`. This approach allows you to define the tool's attributes and functionality directly within a function,
+offering a concise and efficient way to create specialized tools tailored to your needs.
+
+```python Code
+from crewai.tools import tool
+
+@tool("Tool Name")
+def my_simple_tool(question: str) -> str:
+    """Tool description for clarity."""
+    # Tool logic here
+    return "Tool output"
+```
+
+### Defining a Cache Function for the Tool
+
+To optimize tool performance with caching, define custom caching strategies using the `cache_function` attribute.
+
+```python Code
+@tool("Tool with Caching")
+def cached_tool(argument: str) -> str:
+    """Tool functionality description."""
+    return "Cacheable result"
+
+def my_cache_strategy(arguments: dict, result: str) -> bool:
+    # Define custom caching logic
+    return True if some_condition else False
+
+cached_tool.cache_function = my_cache_strategy
+```
+
+By adhering to these guidelines and incorporating new functionalities and collaboration tools into your tool creation and management processes,
+you can leverage the full capabilities of the CrewAI framework, enhancing both the development experience and the efficiency of your AI agents.
+
+
+
+---
+File: /how-to/custom-manager-agent.mdx
+---
+
+---
+title: Create Your Own Manager Agent
+description: Learn how to set a custom agent as the manager in CrewAI, providing more control over task management and coordination.
+icon: user-shield
+---
+
+# Setting a Specific Agent as Manager in CrewAI
+
+CrewAI allows users to set a specific agent as the manager of the crew, providing more control over the management and coordination of tasks. 
+This feature enables the customization of the managerial role to better fit your project's requirements.
+
+## Using the `manager_agent` Attribute
+
+### Custom Manager Agent
+
+The `manager_agent` attribute allows you to define a custom agent to manage the crew. This agent will oversee the entire process, ensuring that tasks are completed efficiently and to the highest standard.
+
+### Example
+
+```python Code
+import os
+from crewai import Agent, Task, Crew, Process
+
+# Define your agents
+researcher = Agent(
+    role="Researcher",
+    goal="Conduct thorough research and analysis on AI and AI agents",
+    backstory="You're an expert researcher, specialized in technology, software engineering, AI, and startups. You work as a freelancer and are currently researching for a new client.",
+    allow_delegation=False,
+)
+
+writer = Agent(
+    role="Senior Writer",
+    goal="Create compelling content about AI and AI agents",
+    backstory="You're a senior writer, specialized in technology, software engineering, AI, and startups. You work as a freelancer and are currently writing content for a new client.",
+    allow_delegation=False,
+)
+
+# Define your task
+task = Task(
+    description="Generate a list of 5 interesting ideas for an article, then write one captivating paragraph for each idea that showcases the potential of a full article on this topic. Return the list of ideas with their paragraphs and your notes.",
+    expected_output="5 bullet points, each with a paragraph and accompanying notes.",
+)
+
+# Define the manager agent
+manager = Agent(
+    role="Project Manager",
+    goal="Efficiently manage the crew and ensure high-quality task completion",
+    backstory="You're an experienced project manager, skilled in overseeing complex projects and guiding teams to success. Your role is to coordinate the efforts of the crew members, ensuring that each task is completed on time and to the highest standard.",
+    allow_delegation=True,
+)
+
+# Instantiate your crew with a custom manager
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[task],
+    manager_agent=manager,
+    process=Process.hierarchical,
+)
+
+# Start the crew's work
+result = crew.kickoff()
+```
+
+## Benefits of a Custom Manager Agent
+
+- **Enhanced Control**: Tailor the management approach to fit the specific needs of your project.
+- **Improved Coordination**: Ensure efficient task coordination and management by an experienced agent.
+- **Customizable Management**: Define managerial roles and responsibilities that align with your project's goals.
+
+## Setting a Manager LLM
+
+If you're using the hierarchical process and don't want to set a custom manager agent, you can specify the language model for the manager:
+
+```python Code
+from crewai import LLM
+
+manager_llm = LLM(model="gpt-4o")
+
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[task],
+    process=Process.hierarchical,
+    manager_llm=manager_llm
+)
+```
+
+<Note>
+Either `manager_agent` or `manager_llm` must be set when using the hierarchical process.
+</Note>
+
+
+---
+File: /how-to/customizing-agents.mdx
+---
+
+---
+title: Customize Agents
+description: A comprehensive guide to tailoring agents for specific roles, tasks, and advanced customizations within the CrewAI framework.
+icon: user-pen
+---
+
+## Customizable Attributes
+
+Crafting an efficient CrewAI team hinges on the ability to dynamically tailor your AI agents to meet the unique requirements of any project. This section covers the foundational attributes you can customize.
+
+### Key Attributes for Customization
+
+| Attribute              | Description                                                                                                                                               |
+|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Role**              | Specifies the agent's job within the crew, such as 'Analyst' or 'Customer Service Rep'.                                                                   |
+| **Goal**              | Defines the agentâ€™s objectives, aligned with its role and the crewâ€™s overarching mission.                                                                  |
+| **Backstory**         | Provides depth to the agent's persona, enhancing motivations and engagements within the crew.                                                              |
+| **Tools** *(Optional)*        | Represents the capabilities or methods the agent uses for tasks, from simple functions to complex integrations.                                              |
+| **Cache** *(Optional)*        | Determines if the agent should use a cache for tool usage.                                                                                          |
+| **Max RPM**           | Sets the maximum requests per minute (`max_rpm`). Can be set to `None` for unlimited requests to external services.                                        |
+| **Verbose** *(Optional)*      | Enables detailed logging for debugging and optimization, providing insights into execution processes.                                                 |
+| **Allow Delegation** *(Optional)* | Controls task delegation to other agents, default is `False`.                                                                                    |
+| **Max Iter** *(Optional)*      | Limits the maximum number of iterations (`max_iter`) for a task to prevent infinite loops, with a default of 25.                                    |
+| **Max Execution Time** *(Optional)* | Sets the maximum time allowed for an agent to complete a task.                                                                                   |
+| **System Template** *(Optional)*   | Defines the system format for the agent.                                                                                                       |
+| **Prompt Template** *(Optional)*   | Defines the prompt format for the agent.                                                                                                       |
+| **Response Template** *(Optional)* | Defines the response format for the agent.                                                                                                     |
+| **Use System Prompt** *(Optional)* | Controls whether the agent will use a system prompt during task execution.                                                                      |
+| **Respect Context Window**       | Enables a sliding context window by default, maintaining context size.                                                                           |
+| **Max Retry Limit**              | Sets the maximum number of retries (`max_retry_limit`) for an agent in case of errors.                                                           |
+
+## Advanced Customization Options
+
+Beyond the basic attributes, CrewAI allows for deeper customization to enhance an agent's behavior and capabilities significantly.
+
+### Language Model Customization
+
+Agents can be customized with specific language models (`llm`) and function-calling language models (`function_calling_llm`), offering advanced control over their processing and decision-making abilities. 
+It's important to note that setting the `function_calling_llm` allows for overriding the default crew function-calling language model, providing a greater degree of customization.
+
+## Performance and Debugging Settings
+
+Adjusting an agent's performance and monitoring its operations are crucial for efficient task execution.
+
+### Verbose Mode and RPM Limit
+
+- **Verbose Mode**: Enables detailed logging of an agent's actions, useful for debugging and optimization. Specifically, it provides insights into agent execution processes, aiding in the optimization of performance.
+- **RPM Limit**: Sets the maximum number of requests per minute (`max_rpm`). This attribute is optional and can be set to `None` for no limit, allowing for unlimited queries to external services if needed.
+
+### Maximum Iterations for Task Execution
+
+The `max_iter` attribute allows users to define the maximum number of iterations an agent can perform for a single task, preventing infinite loops or excessively long executions. 
+The default value is set to 25, providing a balance between thoroughness and efficiency. Once the agent approaches this number, it will try its best to give a good answer.
+
+## Customizing Agents and Tools
+
+Agents are customized by defining their attributes and tools during initialization. Tools are critical for an agent's functionality, enabling them to perform specialized tasks. 
+The `tools` attribute should be an array of tools the agent can utilize, and it's initialized as an empty list by default. Tools can be added or modified post-agent initialization to adapt to new requirements.
+
+```shell
+pip install 'crewai[tools]'
+```
+
+### Example: Assigning Tools to an Agent
+
+```python Code
+import os
+from crewai import Agent
+from crewai_tools import SerperDevTool
+
+# Set API keys for tool initialization
+os.environ["OPENAI_API_KEY"] = "Your Key"
+os.environ["SERPER_API_KEY"] = "Your Key"
+
+# Initialize a search tool
+search_tool = SerperDevTool()
+
+# Initialize the agent with advanced options
+agent = Agent(
+  role='Research Analyst',
+  goal='Provide up-to-date market analysis',
+  backstory='An expert analyst with a keen eye for market trends.',
+  tools=[search_tool],
+  memory=True, # Enable memory
+  verbose=True,
+  max_rpm=None, # No limit on requests per minute
+  max_iter=25, # Default value for maximum iterations
+)
+```
+
+## Delegation and Autonomy
+
+Controlling an agent's ability to delegate tasks or ask questions is vital for tailoring its autonomy and collaborative dynamics within the CrewAI framework. By default, 
+the `allow_delegation` attribute is now set to `False`, disabling agents to seek assistance or delegate tasks as needed. This default behavior can be changed to promote collaborative problem-solving and 
+efficiency within the CrewAI ecosystem. If needed, delegation can be enabled to suit specific operational requirements.
+
+### Example: Disabling Delegation for an Agent
+
+```python Code
+agent = Agent(
+  role='Content Writer',
+  goal='Write engaging content on market trends',
+  backstory='A seasoned writer with expertise in market analysis.',
+  allow_delegation=True # Enabling delegation
+)
+```
+
+## Conclusion
+
+Customizing agents in CrewAI by setting their roles, goals, backstories, and tools, alongside advanced options like language model customization, memory, performance settings, and delegation preferences, 
+equips a nuanced and capable AI team ready for complex challenges.
+
+
+---
+File: /how-to/force-tool-output-as-result.mdx
+---
+
+---
+title: Force Tool Output as Result
+description: Learn how to force tool output as the result in an Agent's task in CrewAI.
+icon: wrench-simple
+---
+
+## Introduction
+
+In CrewAI, you can force the output of a tool as the result of an agent's task. 
+This feature is useful when you want to ensure that the tool output is captured and returned as the task result, avoiding any agent modification during the task execution.
+
+## Forcing Tool Output as Result
+
+To force the tool output as the result of an agent's task, you need to set the `result_as_answer` parameter to `True` when adding a tool to the agent. 
+This parameter ensures that the tool output is captured and returned as the task result, without any modifications by the agent.
+
+Here's an example of how to force the tool output as the result of an agent's task:
+
+```python Code
+from crewai.agent import Agent
+from my_tool import MyCustomTool
+
+# Create a coding agent with the custom tool
+coding_agent = Agent(
+        role="Data Scientist",
+        goal="Produce amazing reports on AI",
+        backstory="You work with data and AI",
+        tools=[MyCustomTool(result_as_answer=True)],
+    )
+
+# Assuming the tool's execution and result population occurs within the system
+task_result = coding_agent.execute_task(task)
+```
+
+## Workflow in Action
+
+<Steps>
+   <Step title="Task Execution">
+      The agent executes the task using the tool provided.
+   </Step>
+   <Step title="Tool Output">
+      The tool generates the output, which is captured as the task result.
+   </Step>
+   <Step title="Agent Interaction">
+      The agent may reflect and take learnings from the tool but the output is not modified.
+   </Step>
+   <Step title="Result Return">
+      The tool output is returned as the task result without any modifications.
+   </Step>
+</Steps>
+
+
+---
+File: /how-to/hierarchical-process.mdx
+---
+
+---
+title: Hierarchical Process
+description: A comprehensive guide to understanding and applying the hierarchical process within your CrewAI projects, updated to reflect the latest coding practices and functionalities.
+icon: sitemap
+---
+
+## Introduction
+
+The hierarchical process in CrewAI introduces a structured approach to task management, simulating traditional organizational hierarchies for efficient task delegation and execution. 
+This systematic workflow enhances project outcomes by ensuring tasks are handled with optimal efficiency and accuracy.
+
+<Tip>
+    The hierarchical process is designed to leverage advanced models like GPT-4, optimizing token usage while handling complex tasks with greater efficiency.
+</Tip>
+
+## Hierarchical Process Overview
+
+By default, tasks in CrewAI are managed through a sequential process. However, adopting a hierarchical approach allows for a clear hierarchy in task management, 
+where a 'manager' agent coordinates the workflow, delegates tasks, and validates outcomes for streamlined and effective execution. This manager agent can now be either 
+automatically created by CrewAI or explicitly set by the user.
+
+### Key Features
+
+- **Task Delegation**: A manager agent allocates tasks among crew members based on their roles and capabilities.
+- **Result Validation**: The manager evaluates outcomes to ensure they meet the required standards.
+- **Efficient Workflow**: Emulates corporate structures, providing an organized approach to task management.
+- **System Prompt Handling**: Optionally specify whether the system should use predefined prompts.
+- **Stop Words Control**: Optionally specify whether stop words should be used, supporting various models including the o1 models.
+- **Context Window Respect**: Prioritize important context by enabling respect of the context window, which is now the default behavior.
+- **Delegation Control**: Delegation is now disabled by default to give users explicit control.
+- **Max Requests Per Minute**: Configurable option to set the maximum number of requests per minute.
+- **Max Iterations**: Limit the maximum number of iterations for obtaining a final answer.
+
+
+## Implementing the Hierarchical Process
+
+To utilize the hierarchical process, it's essential to explicitly set the process attribute to `Process.hierarchical`, as the default behavior is `Process.sequential`. 
+Define a crew with a designated manager and establish a clear chain of command.
+
+<Tip>
+    Assign tools at the agent level to facilitate task delegation and execution by the designated agents under the manager's guidance. 
+    Tools can also be specified at the task level for precise control over tool availability during task execution.
+</Tip>
+
+<Tip>
+    Configuring the `manager_llm` parameter is crucial for the hierarchical process. 
+    The system requires a manager LLM to be set up for proper function, ensuring tailored decision-making.
+</Tip>
+
+```python Code
+from langchain_openai import ChatOpenAI
+from crewai import Crew, Process, Agent
+
+# Agents are defined with attributes for backstory, cache, and verbose mode
+researcher = Agent(
+    role='Researcher',
+    goal='Conduct in-depth analysis',
+    backstory='Experienced data analyst with a knack for uncovering hidden trends.',
+    cache=True,
+    verbose=False,
+    # tools=[]  # This can be optionally specified; defaults to an empty list
+    use_system_prompt=True,  # Enable or disable system prompts for this agent
+    max_rpm=30,  # Limit on the number of requests per minute
+    max_iter=5  # Maximum number of iterations for a final answer
+)
+writer = Agent(
+    role='Writer',
+    goal='Create engaging content',
+    backstory='Creative writer passionate about storytelling in technical domains.',
+    cache=True,
+    verbose=False,
+    # tools=[]  # Optionally specify tools; defaults to an empty list
+    use_system_prompt=True,  # Enable or disable system prompts for this agent
+    max_rpm=30,  # Limit on the number of requests per minute
+    max_iter=5  # Maximum number of iterations for a final answer
+)
+
+# Establishing the crew with a hierarchical process and additional configurations
+project_crew = Crew(
+    tasks=[...],  # Tasks to be delegated and executed under the manager's supervision
+    agents=[researcher, writer],
+    manager_llm=ChatOpenAI(temperature=0, model="gpt-4"),  # Mandatory if manager_agent is not set
+    process=Process.hierarchical,  # Specifies the hierarchical management approach
+    respect_context_window=True,  # Enable respect of the context window for tasks
+    memory=True,  # Enable memory usage for enhanced task execution
+    manager_agent=None,  # Optional: explicitly set a specific agent as manager instead of the manager_llm
+    planning=True,  # Enable planning feature for pre-execution strategy
+)
+```
+
+### Workflow in Action
+
+1. **Task Assignment**: The manager assigns tasks strategically, considering each agent's capabilities and available tools.
+2. **Execution and Review**: Agents complete their tasks with the option for asynchronous execution and callback functions for streamlined workflows.
+3. **Sequential Task Progression**: Despite being a hierarchical process, tasks follow a logical order for smooth progression, facilitated by the manager's oversight.
+
+## Conclusion
+
+Adopting the hierarchical process in CrewAI, with the correct configurations and understanding of the system's capabilities, facilitates an organized and efficient approach to project management. 
+Utilize the advanced features and customizations to tailor the workflow to your specific needs, ensuring optimal task execution and project success.
+
+
+---
+File: /how-to/human-input-on-execution.mdx
+---
+
+---
+title: Human Input on Execution
+description: Integrating CrewAI with human input during execution in complex decision-making processes and leveraging the full capabilities of the agent's attributes and tools.
+icon: user-check
+---
+
+## Human input in agent execution
+
+Human input is critical in several agent execution scenarios, allowing agents to request additional information or clarification when necessary. 
+This feature is especially useful in complex decision-making processes or when agents require more details to complete a task effectively.
+
+## Using human input with CrewAI
+
+To integrate human input into agent execution, set the `human_input` flag in the task definition. When enabled, the agent prompts the user for input before delivering its final answer. 
+This input can provide extra context, clarify ambiguities, or validate the agent's output.
+
+### Example:
+
+```shell
+pip install crewai
+```
+
+```python Code
+import os
+from crewai import Agent, Task, Crew
+from crewai_tools import SerperDevTool
+
+os.environ["SERPER_API_KEY"] = "Your Key"  # serper.dev API key
+os.environ["OPENAI_API_KEY"] = "Your Key"
+
+# Loading Tools
+search_tool = SerperDevTool()
+
+# Define your agents with roles, goals, tools, and additional attributes
+researcher = Agent(
+    role='Senior Research Analyst',
+    goal='Uncover cutting-edge developments in AI and data science',
+    backstory=(
+        "You are a Senior Research Analyst at a leading tech think tank. "
+        "Your expertise lies in identifying emerging trends and technologies in AI and data science. "
+        "You have a knack for dissecting complex data and presenting actionable insights."
+    ),
+    verbose=True,
+    allow_delegation=False,
+    tools=[search_tool]
+)
+writer = Agent(
+    role='Tech Content Strategist',
+    goal='Craft compelling content on tech advancements',
+    backstory=(
+        "You are a renowned Tech Content Strategist, known for your insightful and engaging articles on technology and innovation. "
+        "With a deep understanding of the tech industry, you transform complex concepts into compelling narratives."
+    ),
+    verbose=True,
+    allow_delegation=True,
+    tools=[search_tool],
+    cache=False,  # Disable cache for this agent
+)
+
+# Create tasks for your agents
+task1 = Task(
+    description=(
+        "Conduct a comprehensive analysis of the latest advancements in AI in 2025. "
+        "Identify key trends, breakthrough technologies, and potential industry impacts. "
+        "Compile your findings in a detailed report. "
+        "Make sure to check with a human if the draft is good before finalizing your answer."
+    ),
+    expected_output='A comprehensive full report on the latest AI advancements in 2025, leave nothing out',
+    agent=researcher,
+    human_input=True
+)
+
+task2 = Task(
+    description=(
+        "Using the insights from the researcher\'s report, develop an engaging blog post that highlights the most significant AI advancements. "
+        "Your post should be informative yet accessible, catering to a tech-savvy audience. "
+        "Aim for a narrative that captures the essence of these breakthroughs and their implications for the future."
+    ),
+    expected_output='A compelling 3 paragraphs blog post formatted as markdown about the latest AI advancements in 2025',
+    agent=writer,
+    human_input=True
+)
+
+# Instantiate your crew with a sequential process
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[task1, task2],
+    verbose=True,
+    memory=True,
+    planning=True  # Enable planning feature for the crew
+)
+
+# Get your crew to work!
+result = crew.kickoff()
+
+print("######################")
+print(result)
+```
+
+
+---
+File: /how-to/kickoff-async.mdx
+---
+
+---
+title: Kickoff Crew Asynchronously
+description: Kickoff a Crew Asynchronously
+icon: rocket-launch
+---
+
+## Introduction
+
+CrewAI provides the ability to kickoff a crew asynchronously, allowing you to start the crew execution in a non-blocking manner. 
+This feature is particularly useful when you want to run multiple crews concurrently or when you need to perform other tasks while the crew is executing.
+
+## Asynchronous Crew Execution
+
+To kickoff a crew asynchronously, use the `kickoff_async()` method. This method initiates the crew execution in a separate thread, allowing the main thread to continue executing other tasks.
+
+### Method Signature
+
+```python Code
+def kickoff_async(self, inputs: dict) -> CrewOutput:
+```
+
+### Parameters
+
+- `inputs` (dict): A dictionary containing the input data required for the tasks.
+
+### Returns
+
+- `CrewOutput`: An object representing the result of the crew execution.
+
+## Potential Use Cases
+
+- **Parallel Content Generation**: Kickoff multiple independent crews asynchronously, each responsible for generating content on different topics. For example, one crew might research and draft an article on AI trends, while another crew generates social media posts about a new product launch. Each crew operates independently, allowing content production to scale efficiently.
+
+- **Concurrent Market Research Tasks**: Launch multiple crews asynchronously to conduct market research in parallel. One crew might analyze industry trends, while another examines competitor strategies, and yet another evaluates consumer sentiment. Each crew independently completes its task, enabling faster and more comprehensive insights.
+
+- **Independent Travel Planning Modules**: Execute separate crews to independently plan different aspects of a trip. One crew might handle flight options, another handles accommodation, and a third plans activities. Each crew works asynchronously, allowing various components of the trip to be planned simultaneously and independently for faster results.
+
+## Example: Single Asynchronous Crew Execution
+
+Here's an example of how to kickoff a crew asynchronously using asyncio and awaiting the result:
+
+```python Code
+import asyncio
+from crewai import Crew, Agent, Task
+
+# Create an agent with code execution enabled
+coding_agent = Agent(
+    role="Python Data Analyst",
+    goal="Analyze data and provide insights using Python",
+    backstory="You are an experienced data analyst with strong Python skills.",
+    allow_code_execution=True
+)
+
+# Create a task that requires code execution
+data_analysis_task = Task(
+    description="Analyze the given dataset and calculate the average age of participants. Ages: {ages}",
+    agent=coding_agent
+)
+
+# Create a crew and add the task
+analysis_crew = Crew(
+    agents=[coding_agent],
+    tasks=[data_analysis_task]
+)
+
+# Async function to kickoff the crew asynchronously
+async def async_crew_execution():
+    result = await analysis_crew.kickoff_async(inputs={"ages": [25, 30, 35, 40, 45]})
+    print("Crew Result:", result)
+
+# Run the async function
+asyncio.run(async_crew_execution())
+```
+
+## Example: Multiple Asynchronous Crew Executions
+
+In this example, we'll show how to kickoff multiple crews asynchronously and wait for all of them to complete using `asyncio.gather()`:
+
+```python Code
+import asyncio
+from crewai import Crew, Agent, Task
+
+# Create an agent with code execution enabled
+coding_agent = Agent(
+    role="Python Data Analyst",
+    goal="Analyze data and provide insights using Python",
+    backstory="You are an experienced data analyst with strong Python skills.",
+    allow_code_execution=True
+)
+
+# Create tasks that require code execution
+task_1 = Task(
+    description="Analyze the first dataset and calculate the average age of participants. Ages: {ages}",
+    agent=coding_agent
+)
+
+task_2 = Task(
+    description="Analyze the second dataset and calculate the average age of participants. Ages: {ages}",
+    agent=coding_agent
+)
+
+# Create two crews and add tasks
+crew_1 = Crew(agents=[coding_agent], tasks=[task_1])
+crew_2 = Crew(agents=[coding_agent], tasks=[task_2])
+
+# Async function to kickoff multiple crews asynchronously and wait for all to finish
+async def async_multiple_crews():
+    result_1 = crew_1.kickoff_async(inputs={"ages": [25, 30, 35, 40, 45]})
+    result_2 = crew_2.kickoff_async(inputs={"ages": [20, 22, 24, 28, 30]})
+
+    # Wait for both crews to finish
+    results = await asyncio.gather(result_1, result_2)
+
+    for i, result in enumerate(results, 1):
+        print(f"Crew {i} Result:", result)
+
+# Run the async function
+asyncio.run(async_multiple_crews())
+```
+
+
+---
+File: /how-to/kickoff-for-each.mdx
+---
+
+---
+title: Kickoff Crew for Each
+description: Kickoff Crew for Each Item in a List
+icon: at
+---
+
+## Introduction
+
+CrewAI provides the ability to kickoff a crew for each item in a list, allowing you to execute the crew for each item in the list. 
+This feature is particularly useful when you need to perform the same set of tasks for multiple items.
+
+## Kicking Off a Crew for Each Item
+
+To kickoff a crew for each item in a list, use the `kickoff_for_each()` method. 
+This method executes the crew for each item in the list, allowing you to process multiple items efficiently.
+
+Here's an example of how to kickoff a crew for each item in a list:
+
+```python Code
+from crewai import Crew, Agent, Task
+
+# Create an agent with code execution enabled
+coding_agent = Agent(
+    role="Python Data Analyst",
+    goal="Analyze data and provide insights using Python",
+    backstory="You are an experienced data analyst with strong Python skills.",
+    allow_code_execution=True
+)
+
+# Create a task that requires code execution
+data_analysis_task = Task(
+    description="Analyze the given dataset and calculate the average age of participants. Ages: {ages}",
+    agent=coding_agent,
+    expected_output="The average age calculated from the dataset"
+)
+
+# Create a crew and add the task
+analysis_crew = Crew(
+    agents=[coding_agent],
+    tasks=[data_analysis_task],
+    verbose=True,
+    memory=False,
+    respect_context_window=True  # enable by default
+)
+
+datasets = [
+  { "ages": [25, 30, 35, 40, 45] },
+  { "ages": [20, 25, 30, 35, 40] },
+  { "ages": [30, 35, 40, 45, 50] }
+]
+
+# Execute the crew
+result = analysis_crew.kickoff_for_each(inputs=datasets)
+```
+
+
+---
+File: /how-to/langfuse-observability.mdx
+---
+
+---
+title: Agent Monitoring with Langfuse
+description: Learn how to integrate Langfuse with CrewAI via OpenTelemetry using OpenLit
+icon: magnifying-glass-chart
+---
+
+# Integrate Langfuse with CrewAI
+
+This notebook demonstrates how to integrate **Langfuse** with **CrewAI** using OpenTelemetry via the **OpenLit** SDK. By the end of this notebook, you will be able to trace your CrewAI applications with Langfuse for improved observability and debugging.
+
+> **What is Langfuse?** [Langfuse](https://langfuse.com) is an open-source LLM engineering platform. It provides tracing and monitoring capabilities for LLM applications, helping developers debug, analyze, and optimize their AI systems. Langfuse integrates with various tools and frameworks via native integrations, OpenTelemetry, and APIs/SDKs.
+
+[![Langfuse Overview Video](https://github.com/user-attachments/assets/3926b288-ff61-4b95-8aa1-45d041c70866)](https://langfuse.com/watch-demo)
+
+## Get Started
+
+We'll walk through a simple example of using CrewAI and integrating it with Langfuse via OpenTelemetry using OpenLit.
+
+### Step 1: Install Dependencies
+
+
+```python
+%pip install langfuse openlit crewai crewai_tools
+```
+
+### Step 2: Set Up Environment Variables
+
+Set your Langfuse API keys and configure OpenTelemetry export settings to send traces to Langfuse. Please refer to the [Langfuse OpenTelemetry Docs](https://langfuse.com/docs/opentelemetry/get-started) for more information on the Langfuse OpenTelemetry endpoint `/api/public/otel` and authentication.
+
+
+```python
+import os
+import base64
+
+LANGFUSE_PUBLIC_KEY="pk-lf-..."
+LANGFUSE_SECRET_KEY="sk-lf-..."
+LANGFUSE_AUTH=base64.b64encode(f"{LANGFUSE_PUBLIC_KEY}:{LANGFUSE_SECRET_KEY}".encode()).decode()
+
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://cloud.langfuse.com/api/public/otel" # EU data region
+# os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://us.cloud.langfuse.com/api/public/otel" # US data region
+os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {LANGFUSE_AUTH}"
+
+# your openai key
+os.environ["OPENAI_API_KEY"] = "sk-..."
+```
+
+### Step 3: Initialize OpenLit
+
+Initialize the OpenLit OpenTelemetry instrumentation SDK to start capturing OpenTelemetry traces.
+
+
+```python
+import openlit
+
+openlit.init()
+```
+
+### Step 4: Create a Simple CrewAI Application
+
+We'll create a simple CrewAI application where multiple agents collaborate to answer a user's question.
+
+
+```python
+from crewai import Agent, Task, Crew
+
+from crewai_tools import (
+    WebsiteSearchTool
+)
+
+web_rag_tool = WebsiteSearchTool()
+
+writer = Agent(
+        role="Writer",
+        goal="You make math engaging and understandable for young children through poetry",
+        backstory="You're an expert in writing haikus but you know nothing of math.",
+        tools=[web_rag_tool],  
+    )
+
+task = Task(description=("What is {multiplication}?"),
+            expected_output=("Compose a haiku that includes the answer."),
+            agent=writer)
+
+crew = Crew(
+  agents=[writer],
+  tasks=[task],
+  share_crew=False
+)
+```
+
+### Step 5: See Traces in Langfuse
+
+After running the agent, you can view the traces generated by your CrewAI application in [Langfuse](https://cloud.langfuse.com). You should see detailed steps of the LLM interactions, which can help you debug and optimize your AI agent.
+
+![CrewAI example trace in Langfuse](https://langfuse.com/images/cookbook/integration_crewai/crewai-example-trace.png)
+
+_[Public example trace in Langfuse](https://cloud.langfuse.com/project/cloramnkj0002jz088vzn1ja4/traces/e2cf380ffc8d47d28da98f136140642b?timestamp=2025-02-05T15%3A12%3A02.717Z&observation=3b32338ee6a5d9af)_
+
+## References
+
+- [Langfuse OpenTelemetry Docs](https://langfuse.com/docs/opentelemetry/get-started)
+
+
+
+---
+File: /how-to/langtrace-observability.mdx
+---
+
+---
+title: Agent Monitoring with Langtrace
+description: How to monitor cost, latency, and performance of CrewAI Agents using Langtrace, an external observability tool.
+icon: chart-line
+---
+
+# Langtrace Overview
+
+Langtrace is an open-source, external tool that helps you set up observability and evaluations for Large Language Models (LLMs), LLM frameworks, and Vector Databases. 
+While not built directly into CrewAI, Langtrace can be used alongside CrewAI to gain deep visibility into the cost, latency, and performance of your CrewAI Agents. 
+This integration allows you to log hyperparameters, monitor performance regressions, and establish a process for continuous improvement of your Agents.
+
+![Overview of a select series of agent session runs](/images/langtrace1.png)
+![Overview of agent traces](/images/langtrace2.png)
+![Overview of llm traces in details](/images/langtrace3.png)
+
+## Setup Instructions
+
+<Steps>
+   <Step title="Sign up for Langtrace">
+      Sign up by visiting [https://langtrace.ai/signup](https://langtrace.ai/signup).
+   </Step>
+   <Step title="Create a project">
+      Set the project type to `CrewAI` and generate an API key.
+   </Step>
+   <Step title="Install Langtrace in your CrewAI project">
+      Use the following command:
+
+    ```bash
+    pip install langtrace-python-sdk
+    ```
+   </Step>
+   <Step title="Import Langtrace">
+      Import and initialize Langtrace at the beginning of your script, before any CrewAI imports:
+
+    ```python
+    from langtrace_python_sdk import langtrace
+    langtrace.init(api_key='<LANGTRACE_API_KEY>')
+
+    # Now import CrewAI modules
+    from crewai import Agent, Task, Crew
+    ```
+   </Step>
+</Steps> 
+
+### Features and Their Application to CrewAI
+
+1. **LLM Token and Cost Tracking**
+
+   - Monitor the token usage and associated costs for each CrewAI agent interaction.
+
+2. **Trace Graph for Execution Steps**
+
+   - Visualize the execution flow of your CrewAI tasks, including latency and logs.
+   - Useful for identifying bottlenecks in your agent workflows.
+
+3. **Dataset Curation with Manual Annotation**
+
+   - Create datasets from your CrewAI task outputs for future training or evaluation.
+
+4. **Prompt Versioning and Management**
+
+   - Keep track of different versions of prompts used in your CrewAI agents.
+   - Useful for A/B testing and optimizing agent performance.
+
+5. **Prompt Playground with Model Comparisons**
+
+   - Test and compare different prompts and models for your CrewAI agents before deployment.
+
+6. **Testing and Evaluations**
+
+   - Set up automated tests for your CrewAI agents and tasks.
+
+
+
+---
+File: /how-to/llm-connections.mdx
+---
+
+---
+title: Connect to any LLM
+description: Comprehensive guide on integrating CrewAI with various Large Language Models (LLMs) using LiteLLM, including supported providers and configuration options.
+icon: brain-circuit
+---
+
+## Connect CrewAI to LLMs
+
+CrewAI uses LiteLLM to connect to a wide variety of Language Models (LLMs). This integration provides extensive versatility, allowing you to use models from numerous providers with a simple, unified interface.
+
+<Note>
+    By default, CrewAI uses the `gpt-4o-mini` model. This is determined by the `OPENAI_MODEL_NAME` environment variable, which defaults to "gpt-4o-mini" if not set. 
+    You can easily configure your agents to use a different model or provider as described in this guide.
+</Note>
+
+## Supported Providers
+
+LiteLLM supports a wide range of providers, including but not limited to:
+
+- OpenAI
+- Anthropic
+- Google (Vertex AI, Gemini)
+- Azure OpenAI
+- AWS (Bedrock, SageMaker)
+- Cohere
+- VoyageAI
+- Hugging Face
+- Ollama
+- Mistral AI
+- Replicate
+- Together AI
+- AI21
+- Cloudflare Workers AI
+- DeepInfra
+- Groq
+- SambaNova
+- [NVIDIA NIMs](https://docs.api.nvidia.com/nim/reference/models-1)
+- And many more!
+
+For a complete and up-to-date list of supported providers, please refer to the [LiteLLM Providers documentation](https://docs.litellm.ai/docs/providers).
+
+## Changing the LLM
+
+To use a different LLM with your CrewAI agents, you have several options:
+
+<Tabs>
+    <Tab title="Using a String Identifier">
+    Pass the model name as a string when initializing the agent:
+        <CodeGroup>
+            ```python Code
+            from crewai import Agent
+
+            # Using OpenAI's GPT-4
+            openai_agent = Agent(
+                role='OpenAI Expert',
+                goal='Provide insights using GPT-4',
+                backstory="An AI assistant powered by OpenAI's latest model.",
+                llm='gpt-4'
+            )
+
+            # Using Anthropic's Claude
+            claude_agent = Agent(
+                role='Anthropic Expert',
+                goal='Analyze data using Claude',
+                backstory="An AI assistant leveraging Anthropic's language model.",
+                llm='claude-2'
+            )
+            ```
+        </CodeGroup>
+    </Tab>
+    <Tab title="Using the LLM Class">
+    For more detailed configuration, use the LLM class:
+        <CodeGroup>
+            ```python Code
+            from crewai import Agent, LLM
+
+            llm = LLM(
+                model="gpt-4",
+                temperature=0.7,
+                base_url="https://api.openai.com/v1",
+                api_key="your-api-key-here"
+            )
+
+            agent = Agent(
+                role='Customized LLM Expert',
+                goal='Provide tailored responses',
+                backstory="An AI assistant with custom LLM settings.",
+                llm=llm
+            )
+            ```
+        </CodeGroup>
+    </Tab>
+</Tabs>
+
+## Configuration Options
+
+When configuring an LLM for your agent, you have access to a wide range of parameters:
+
+| Parameter | Type | Description |
+|:----------|:-----:|:-------------|
+| **model** | `str` | The name of the model to use (e.g., "gpt-4", "claude-2") |
+| **temperature** | `float` | Controls randomness in output (0.0 to 1.0) |
+| **max_tokens** | `int` | Maximum number of tokens to generate |
+| **top_p** | `float` | Controls diversity of output (0.0 to 1.0) |
+| **frequency_penalty** | `float` | Penalizes new tokens based on their frequency in the text so far |
+| **presence_penalty** | `float` | Penalizes new tokens based on their presence in the text so far |
+| **stop** | `str`, `List[str]` | Sequence(s) to stop generation |
+| **base_url** | `str` | The base URL for the API endpoint |
+| **api_key** | `str` | Your API key for authentication |
+
+For a complete list of parameters and their descriptions, refer to the LLM class documentation.
+
+## Connecting to OpenAI-Compatible LLMs
+
+You can connect to OpenAI-compatible LLMs using either environment variables or by setting specific attributes on the LLM class:
+
+<Tabs>
+    <Tab title="Using Environment Variables">
+        <CodeGroup>
+        ```python Code
+        import os
+
+        os.environ["OPENAI_API_KEY"] = "your-api-key"
+        os.environ["OPENAI_API_BASE"] = "https://api.your-provider.com/v1"
+        os.environ["OPENAI_MODEL_NAME"] = "your-model-name"
+        ```
+        </CodeGroup>
+    </Tab>
+    <Tab title="Using LLM Class Attributes">
+        <CodeGroup>
+            ```python Code
+            llm = LLM(
+                model="custom-model-name",
+                api_key="your-api-key",
+                base_url="https://api.your-provider.com/v1"
+            )
+            agent = Agent(llm=llm, ...)
+            ```
+        </CodeGroup>
+    </Tab>
+</Tabs>
+
+## Using Local Models with Ollama
+
+For local models like those provided by Ollama:
+
+<Steps>
+    <Step title="Download and install Ollama">
+    [Click here to download and install Ollama](https://ollama.com/download)
+    </Step>
+    <Step title="Pull the desired model">
+    For example, run `ollama pull llama3.2` to download the model.
+    </Step>
+    <Step title="Configure your agent">
+        <CodeGroup>
+        ```python Code
+            agent = Agent(
+                role='Local AI Expert',
+                goal='Process information using a local model',
+                backstory="An AI assistant running on local hardware.",
+                llm=LLM(model="ollama/llama3.2", base_url="http://localhost:11434")
+            )
+            ```
+        </CodeGroup>
+    </Step>
+</Steps>
+
+## Changing the Base API URL
+
+You can change the base API URL for any LLM provider by setting the `base_url` parameter:
+
+```python Code  
+llm = LLM(
+    model="custom-model-name",
+    base_url="https://api.your-provider.com/v1",
+    api_key="your-api-key"
+)
+agent = Agent(llm=llm, ...)
+```
+
+This is particularly useful when working with OpenAI-compatible APIs or when you need to specify a different endpoint for your chosen provider.
+
+## Conclusion
+
+By leveraging LiteLLM, CrewAI offers seamless integration with a vast array of LLMs. This flexibility allows you to choose the most suitable model for your specific needs, whether you prioritize performance, cost-efficiency, or local deployment. Remember to consult the [LiteLLM documentation](https://docs.litellm.ai/docs/) for the most up-to-date information on supported models and configuration options.
+
+
+
+---
+File: /how-to/mlflow-observability.mdx
+---
+
+---
+title: Agent Monitoring with MLflow
+description: Quickly start monitoring your Agents with MLflow.
+icon: bars-staggered
+---
+
+# MLflow Overview
+
+[MLflow](https://mlflow.org/) is an open-source platform to assist machine learning practitioners and teams in handling the complexities of the machine learning process.
+
+It provides a tracing feature that enhances LLM observability in your Generative AI applications by capturing detailed information about the execution of your applicationâ€™s services. 
+Tracing provides a way to record the inputs, outputs, and metadata associated with each intermediate step of a request, enabling you to easily pinpoint the source of bugs and unexpected behaviors.
+
+![Overview of MLflow crewAI tracing usage](/images/mlflow-tracing.gif)
+
+### Features
+
+- **Tracing Dashboard**: Monitor activities of your crewAI agents with detailed dashboards that include inputs, outputs and metadata of spans.
+- **Automated Tracing**: A fully automated integration with crewAI, which can be enabled by running `mlflow.crewai.autolog()`. 
+- **Manual Trace Instrumentation with minor efforts**: Customize trace instrumentation through MLflow's high-level fluent APIs such as decorators, function wrappers and context managers.
+- **OpenTelemetry Compatibility**: MLflow Tracing supports exporting traces to an OpenTelemetry Collector, which can then be used to export traces to various backends such as Jaeger, Zipkin, and AWS X-Ray.
+- **Package and Deploy Agents**: Package and deploy your crewAI agents to an inference server with a variety of deployment targets.
+- **Securely Host LLMs**: Host multiple LLM from various providers in one unified endpoint through MFflow gateway.
+- **Evaluation**: Evaluate your crewAI agents with a wide range of metrics using a convenient API `mlflow.evaluate()`.
+
+## Setup Instructions
+
+<Steps>
+    <Step title="Install MLflow package">
+      ```shell
+      # The crewAI integration is available in mlflow>=2.19.0
+      pip install mlflow
+      ```
+    </Step>
+    <Step title="Start MFflow tracking server">
+      ```shell
+      # This process is optional, but it is recommended to use MLflow tracking server for better visualization and broader features.
+      mlflow server
+      ```
+    </Step>
+    <Step title="Initialize MLflow in Your Application">
+      Add the following two lines to your application code:
+
+      ```python
+      import mlflow
+
+      mlflow.crewai.autolog()
+
+      # Optional: Set a tracking URI and an experiment name if you have a tracking server
+      mlflow.set_tracking_uri("http://localhost:5000")
+      mlflow.set_experiment("CrewAI")
+      ```
+      
+      Example Usage for tracing CrewAI Agents:
+
+      ```python
+      from crewai import Agent, Crew, Task
+      from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
+      from crewai_tools import SerperDevTool, WebsiteSearchTool
+
+      from textwrap import dedent
+
+      content = "Users name is John. He is 30 years old and lives in San Francisco."
+      string_source = StringKnowledgeSource(
+          content=content, metadata={"preference": "personal"}
+      )
+
+      search_tool = WebsiteSearchTool()
+
+
+      class TripAgents:
+          def city_selection_agent(self):
+              return Agent(
+                  role="City Selection Expert",
+                  goal="Select the best city based on weather, season, and prices",
+                  backstory="An expert in analyzing travel data to pick ideal destinations",
+                  tools=[
+                      search_tool,
+                  ],
+                  verbose=True,
+              )
+
+          def local_expert(self):
+              return Agent(
+                  role="Local Expert at this city",
+                  goal="Provide the BEST insights about the selected city",
+                  backstory="""A knowledgeable local guide with extensive information
+              about the city, it's attractions and customs""",
+                  tools=[search_tool],
+                  verbose=True,
+              )
+
+
+      class TripTasks:
+          def identify_task(self, agent, origin, cities, interests, range):
+              return Task(
+                  description=dedent(
+                      f"""
+                      Analyze and select the best city for the trip based
+                      on specific criteria such as weather patterns, seasonal
+                      events, and travel costs. This task involves comparing
+                      multiple cities, considering factors like current weather
+                      conditions, upcoming cultural or seasonal events, and
+                      overall travel expenses.
+                      Your final answer must be a detailed
+                      report on the chosen city, and everything you found out
+                      about it, including the actual flight costs, weather
+                      forecast and attractions.
+
+                      Traveling from: {origin}
+                      City Options: {cities}
+                      Trip Date: {range}
+                      Traveler Interests: {interests}
+                  """
+                  ),
+                  agent=agent,
+                  expected_output="Detailed report on the chosen city including flight costs, weather forecast, and attractions",
+              )
+
+          def gather_task(self, agent, origin, interests, range):
+              return Task(
+                  description=dedent(
+                      f"""
+                      As a local expert on this city you must compile an
+                      in-depth guide for someone traveling there and wanting
+                      to have THE BEST trip ever!
+                      Gather information about key attractions, local customs,
+                      special events, and daily activity recommendations.
+                      Find the best spots to go to, the kind of place only a
+                      local would know.
+                      This guide should provide a thorough overview of what
+                      the city has to offer, including hidden gems, cultural
+                      hotspots, must-visit landmarks, weather forecasts, and
+                      high level costs.
+                      The final answer must be a comprehensive city guide,
+                      rich in cultural insights and practical tips,
+                      tailored to enhance the travel experience.
+
+                      Trip Date: {range}
+                      Traveling from: {origin}
+                      Traveler Interests: {interests}
+                  """
+                  ),
+                  agent=agent,
+                  expected_output="Comprehensive city guide including hidden gems, cultural hotspots, and practical travel tips",
+              )
+
+
+      class TripCrew:
+          def __init__(self, origin, cities, date_range, interests):
+              self.cities = cities
+              self.origin = origin
+              self.interests = interests
+              self.date_range = date_range
+
+          def run(self):
+              agents = TripAgents()
+              tasks = TripTasks()
+
+              city_selector_agent = agents.city_selection_agent()
+              local_expert_agent = agents.local_expert()
+
+              identify_task = tasks.identify_task(
+                  city_selector_agent,
+                  self.origin,
+                  self.cities,
+                  self.interests,
+                  self.date_range,
+              )
+              gather_task = tasks.gather_task(
+                  local_expert_agent, self.origin, self.interests, self.date_range
+              )
+
+              crew = Crew(
+                  agents=[city_selector_agent, local_expert_agent],
+                  tasks=[identify_task, gather_task],
+                  verbose=True,
+                  memory=True,
+                  knowledge={
+                      "sources": [string_source],
+                      "metadata": {"preference": "personal"},
+                  },
+              )
+
+              result = crew.kickoff()
+              return result
+
+
+      trip_crew = TripCrew("California", "Tokyo", "Dec 12 - Dec 20", "sports")
+      result = trip_crew.run()
+
+      print(result)
+      ```
+      Refer to [MLflow Tracing Documentation](https://mlflow.org/docs/latest/llms/tracing/index.html) for more configurations and use cases.
+    </Step>
+    <Step title="Visualize Activities of Agents">
+      Now traces for your crewAI agents are captured by MLflow. 
+      Let's visit MLflow tracking server to view the traces and get insights into your Agents.
+
+      Open `127.0.0.1:5000` on your browser to visit MLflow tracking server. 
+      <Frame caption="MLflow Tracing Dashboard">
+        <img src="/images/mlflow1.png" alt="MLflow tracing example with crewai" />
+      </Frame>
+    </Step>
+</Steps> 
+
+
+
+
+---
+File: /how-to/multimodal-agents.mdx
+---
+
+---
+title: Using Multimodal Agents
+description: Learn how to enable and use multimodal capabilities in your agents for processing images and other non-text content within the CrewAI framework.
+icon: video
+---
+
+## Using Multimodal Agents
+
+CrewAI supports multimodal agents that can process both text and non-text content like images. This guide will show you how to enable and use multimodal capabilities in your agents.
+
+### Enabling Multimodal Capabilities
+
+To create a multimodal agent, simply set the `multimodal` parameter to `True` when initializing your agent:
+
+```python
+from crewai import Agent
+
+agent = Agent(
+    role="Image Analyst",
+    goal="Analyze and extract insights from images",
+    backstory="An expert in visual content interpretation with years of experience in image analysis",
+    multimodal=True  # This enables multimodal capabilities
+)
+```
+
+When you set `multimodal=True`, the agent is automatically configured with the necessary tools for handling non-text content, including the `AddImageTool`.
+
+### Working with Images
+
+The multimodal agent comes pre-configured with the `AddImageTool`, which allows it to process images. You don't need to manually add this tool - it's automatically included when you enable multimodal capabilities.
+
+Here's a complete example showing how to use a multimodal agent to analyze an image:
+
+```python
+from crewai import Agent, Task, Crew
+
+# Create a multimodal agent
+image_analyst = Agent(
+    role="Product Analyst",
+    goal="Analyze product images and provide detailed descriptions",
+    backstory="Expert in visual product analysis with deep knowledge of design and features",
+    multimodal=True
+)
+
+# Create a task for image analysis
+task = Task(
+    description="Analyze the product image at https://example.com/product.jpg and provide a detailed description",
+    expected_output="A detailed description of the product image",
+    agent=image_analyst
+)
+
+# Create and run the crew
+crew = Crew(
+    agents=[image_analyst],
+    tasks=[task]
+)
+
+result = crew.kickoff()
+```
+
+### Advanced Usage with Context
+
+You can provide additional context or specific questions about the image when creating tasks for multimodal agents. The task description can include specific aspects you want the agent to focus on:
+
+```python
+from crewai import Agent, Task, Crew
+
+# Create a multimodal agent for detailed analysis
+expert_analyst = Agent(
+    role="Visual Quality Inspector",
+    goal="Perform detailed quality analysis of product images",
+    backstory="Senior quality control expert with expertise in visual inspection",
+    multimodal=True  # AddImageTool is automatically included
+)
+
+# Create a task with specific analysis requirements
+inspection_task = Task(
+    description="""
+    Analyze the product image at https://example.com/product.jpg with focus on:
+    1. Quality of materials
+    2. Manufacturing defects
+    3. Compliance with standards
+    Provide a detailed report highlighting any issues found.
+    """,
+    expected_output="A detailed report highlighting any issues found",
+    agent=expert_analyst
+)
+
+# Create and run the crew
+crew = Crew(
+    agents=[expert_analyst],
+    tasks=[inspection_task]
+)
+
+result = crew.kickoff()
+```
+
+### Tool Details
+
+When working with multimodal agents, the `AddImageTool` is automatically configured with the following schema:
+
+```python
+class AddImageToolSchema:
+    image_url: str  # Required: The URL or path of the image to process
+    action: Optional[str] = None  # Optional: Additional context or specific questions about the image
+```
+
+The multimodal agent will automatically handle the image processing through its built-in tools, allowing it to:
+- Access images via URLs or local file paths
+- Process image content with optional context or specific questions
+- Provide analysis and insights based on the visual information and task requirements
+
+### Best Practices
+
+When working with multimodal agents, keep these best practices in mind:
+
+1. **Image Access**
+   - Ensure your images are accessible via URLs that the agent can reach
+   - For local images, consider hosting them temporarily or using absolute file paths
+   - Verify that image URLs are valid and accessible before running tasks
+
+2. **Task Description**
+   - Be specific about what aspects of the image you want the agent to analyze
+   - Include clear questions or requirements in the task description
+   - Consider using the optional `action` parameter for focused analysis
+
+3. **Resource Management**
+   - Image processing may require more computational resources than text-only tasks
+   - Some language models may require base64 encoding for image data
+   - Consider batch processing for multiple images to optimize performance
+
+4. **Environment Setup**
+   - Verify that your environment has the necessary dependencies for image processing
+   - Ensure your language model supports multimodal capabilities
+   - Test with small images first to validate your setup
+
+5. **Error Handling**
+   - Implement proper error handling for image loading failures
+   - Have fallback strategies for when image processing fails
+   - Monitor and log image processing operations for debugging
+
+
+
+---
+File: /how-to/openlit-observability.mdx
+---
+
+---
+title: Agent Monitoring with OpenLIT
+description: Quickly start monitoring your Agents in just a single line of code with OpenTelemetry.
+icon: magnifying-glass-chart
+---
+
+# OpenLIT Overview
+
+[OpenLIT](https://github.com/openlit/openlit?src=crewai-docs) is an open-source tool that makes it simple to monitor the performance of AI agents, LLMs, VectorDBs, and GPUs with just **one** line of code. 
+
+It provides OpenTelemetry-native tracing and metrics to track important parameters like cost, latency, interactions and task sequences. 
+This setup enables you to track hyperparameters and monitor for performance issues, helping you find ways to enhance and fine-tune your agents over time.
+
+<Frame caption="OpenLIT Dashboard">
+  <img src="/images/openlit1.png" alt="Overview Agent usage including cost and tokens" />
+  <img src="/images/openlit2.png" alt="Overview of agent otel traces and metrics" />
+  <img src="/images/openlit3.png" alt="Overview of agent traces in details" />
+</Frame>
+
+### Features
+
+- **Analytics Dashboard**: Monitor your Agents health and performance with detailed dashboards that track metrics, costs, and user interactions.
+- **OpenTelemetry-native Observability SDK**: Vendor-neutral SDKs to send traces and metrics to your existing observability tools like Grafana, DataDog and more.
+- **Cost Tracking for Custom and Fine-Tuned Models**: Tailor cost estimations for specific models using custom pricing files for precise budgeting.
+- **Exceptions Monitoring Dashboard**: Quickly spot and resolve issues by tracking common exceptions and errors with a monitoring dashboard.
+- **Compliance and Security**: Detect potential threats such as profanity and PII leaks.
+- **Prompt Injection Detection**: Identify potential code injection and secret leaks.
+- **API Keys and Secrets Management**: Securely handle your LLM API keys and secrets centrally, avoiding insecure practices.
+- **Prompt Management**: Manage and version Agent prompts using PromptHub for consistent and easy access across Agents.
+- **Model Playground** Test and compare different models for your CrewAI agents before deployment.
+
+## Setup Instructions
+
+<Steps>
+    <Step title="Deploy OpenLIT">
+      <Steps>
+        <Step title="Git Clone OpenLIT Repository">
+          ```shell
+          git clone git@github.com:openlit/openlit.git
+          ```
+        </Step>
+        <Step title="Start Docker Compose">
+          From the root directory of the [OpenLIT Repo](https://github.com/openlit/openlit), Run the below command:
+          ```shell
+          docker compose up -d
+          ```
+        </Step>
+      </Steps>
+    </Step>
+    <Step title="Install OpenLIT SDK">
+      ```shell
+      pip install openlit
+      ```
+    </Step>
+    <Step title="Initialize OpenLIT in Your Application">
+      Add the following two lines to your application code:
+      <Tabs>
+        <Tab title="Setup using function arguments">
+          ```python
+          import openlit
+          openlit.init(otlp_endpoint="http://127.0.0.1:4318")
+          ```
+          
+          Example Usage for monitoring a CrewAI Agent:
+    
+          ```python
+          from crewai import Agent, Task, Crew, Process
+          import openlit
+
+          openlit.init(disable_metrics=True)
+          # Define your agents
+          researcher = Agent(
+              role="Researcher",
+              goal="Conduct thorough research and analysis on AI and AI agents",
+              backstory="You're an expert researcher, specialized in technology, software engineering, AI, and startups. You work as a freelancer and are currently researching for a new client.",
+              allow_delegation=False,
+              llm='command-r'
+          )
+
+
+          # Define your task
+          task = Task(
+              description="Generate a list of 5 interesting ideas for an article, then write one captivating paragraph for each idea that showcases the potential of a full article on this topic. Return the list of ideas with their paragraphs and your notes.",
+              expected_output="5 bullet points, each with a paragraph and accompanying notes.",
+          )
+
+          # Define the manager agent
+          manager = Agent(
+              role="Project Manager",
+              goal="Efficiently manage the crew and ensure high-quality task completion",
+              backstory="You're an experienced project manager, skilled in overseeing complex projects and guiding teams to success. Your role is to coordinate the efforts of the crew members, ensuring that each task is completed on time and to the highest standard.",
+              allow_delegation=True,
+              llm='command-r'
+          )
+
+          # Instantiate your crew with a custom manager
+          crew = Crew(
+              agents=[researcher],
+              tasks=[task],
+              manager_agent=manager,
+              process=Process.hierarchical,
+          )
+
+          # Start the crew's work
+          result = crew.kickoff()
+
+          print(result)
+          ```
+        </Tab>
+        <Tab title="Setup using Environment Variables">
+
+          Add the following two lines to your application code:
+          ```python
+          import openlit
+
+          openlit.init()
+          ```
+
+          Run the following command to configure the OTEL export endpoint:
+          ```shell
+          export OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:4318"
+          ```
+
+          Example Usage for monitoring a CrewAI Async Agent:
+
+          ```python
+          import asyncio
+          from crewai import Crew, Agent, Task
+          import openlit
+
+          openlit.init(otlp_endpoint="http://127.0.0.1:4318")
+
+          # Create an agent with code execution enabled
+          coding_agent = Agent(
+            role="Python Data Analyst",
+            goal="Analyze data and provide insights using Python",
+            backstory="You are an experienced data analyst with strong Python skills.",
+            allow_code_execution=True,
+            llm="command-r"
+          )
+
+          # Create a task that requires code execution
+          data_analysis_task = Task(
+            description="Analyze the given dataset and calculate the average age of participants. Ages: {ages}",
+            agent=coding_agent,
+            expected_output="5 bullet points, each with a paragraph and accompanying notes.",
+          )
+
+          # Create a crew and add the task
+          analysis_crew = Crew(
+            agents=[coding_agent],
+            tasks=[data_analysis_task]
+          )
+
+          # Async function to kickoff the crew asynchronously
+          async def async_crew_execution():
+              result = await analysis_crew.kickoff_async(inputs={"ages": [25, 30, 35, 40, 45]})
+              print("Crew Result:", result)
+
+          # Run the async function
+          asyncio.run(async_crew_execution())
+          ```
+        </Tab>
+      </Tabs>
+      Refer to OpenLIT [Python SDK repository](https://github.com/openlit/openlit/tree/main/sdk/python) for more advanced configurations and use cases.
+    </Step>
+    <Step title="Visualize and Analyze">
+      With the Agent Observability data now being collected and sent to OpenLIT, the next step is to visualize and analyze this data to get insights into your Agent's performance, behavior, and identify areas of improvement.
+
+      Just head over to OpenLIT at `127.0.0.1:3000` on your browser to start exploring. You can login using the default credentials
+      - **Email**: `user@openlit.io`
+      - **Password**: `openlituser`
+      
+      <Frame caption="OpenLIT Dashboard">
+        <img src="/images/openlit1.png" alt="Overview Agent usage including cost and tokens" />
+        <img src="/images/openlit2.png" alt="Overview of agent otel traces and metrics" />
+      </Frame>
+
+    </Step>
+</Steps> 
+
+
+
+
+---
+File: /how-to/portkey-observability.mdx
+---
+
+---
+title: Agent Monitoring with Portkey
+description: How to use Portkey with CrewAI
+icon: key
+---
+
+<img src="https://raw.githubusercontent.com/siddharthsambharia-portkey/Portkey-Product-Images/main/Portkey-CrewAI.png" alt="Portkey CrewAI Header Image" width="70%" />
+
+
+[Portkey](https://portkey.ai/?utm_source=crewai&utm_medium=crewai&utm_campaign=crewai) is a 2-line upgrade to make your CrewAI agents reliable, cost-efficient, and fast.
+
+Portkey adds 4 core production capabilities to any CrewAI agent:
+1. Routing to **200+ LLMs**
+2. Making each LLM call more robust
+3. Full-stack tracing & cost, performance analytics
+4. Real-time guardrails to enforce behavior
+
+## Getting Started
+
+<Steps>
+    <Step title="Install CrewAI and Portkey">
+    ```bash
+    pip install -qU crewai portkey-ai
+    ```
+    </Step>
+    <Step title="Configure the LLM Client">
+    To build CrewAI Agents with Portkey, you'll need two keys:
+    - **Portkey API Key**: Sign up on the [Portkey app](https://app.portkey.ai/?utm_source=crewai&utm_medium=crewai&utm_campaign=crewai) and copy your API key
+    - **Virtual Key**: Virtual Keys securely manage your LLM API keys in one place. Store your LLM provider API keys securely in Portkey's vault
+
+    ```python
+    from crewai import LLM
+    from portkey_ai import createHeaders, PORTKEY_GATEWAY_URL
+
+    gpt_llm = LLM(
+        model="gpt-4",
+        base_url=PORTKEY_GATEWAY_URL,
+        api_key="dummy", # We are using Virtual key
+        extra_headers=createHeaders(
+            api_key="YOUR_PORTKEY_API_KEY",
+            virtual_key="YOUR_VIRTUAL_KEY", # Enter your Virtual key from Portkey
+        )
+    )
+    ```
+    </Step>
+    <Step title="Create and Run Your First Agent">
+    ```python
+    from crewai import Agent, Task, Crew
+
+    # Define your agents with roles and goals
+    coder = Agent(
+        role='Software developer',
+        goal='Write clear, concise code on demand',
+        backstory='An expert coder with a keen eye for software trends.',
+        llm=gpt_llm
+    )
+
+    # Create tasks for your agents
+    task1 = Task(
+        description="Define the HTML for making a simple website with heading- Hello World! Portkey is working!",
+        expected_output="A clear and concise HTML code",
+        agent=coder
+    )
+
+    # Instantiate your crew
+    crew = Crew(
+        agents=[coder],
+        tasks=[task1],
+    )
+
+    result = crew.kickoff()
+    print(result)
+    ```
+    </Step>
+</Steps>
+
+## Key Features
+
+| Feature | Description |
+|:--------|:------------|
+| ðŸŒ Multi-LLM Support | Access OpenAI, Anthropic, Gemini, Azure, and 250+ providers through a unified interface |
+| ðŸ›¡ï¸ Production Reliability | Implement retries, timeouts, load balancing, and fallbacks |
+| ðŸ“Š Advanced Observability | Track 40+ metrics including costs, tokens, latency, and custom metadata |
+| ðŸ” Comprehensive Logging | Debug with detailed execution traces and function call logs |
+| ðŸš§ Security Controls | Set budget limits and implement role-based access control |
+| ðŸ”„ Performance Analytics | Capture and analyze feedback for continuous improvement |
+| ðŸ’¾ Intelligent Caching | Reduce costs and latency with semantic or simple caching |
+
+
+## Production Features with Portkey Configs
+
+All features mentioned below are through Portkey's Config system. Portkey's Config system allows you to define routing strategies using simple JSON objects in your LLM API calls. You can create and manage Configs directly in your code or through the Portkey Dashboard. Each Config has a unique ID for easy reference.
+
+<Frame>
+    <img src="https://raw.githubusercontent.com/Portkey-AI/docs-core/refs/heads/main/images/libraries/libraries-3.avif"/>
+</Frame>
+
+
+### 1. Use 250+ LLMs
+Access various LLMs like Anthropic, Gemini, Mistral, Azure OpenAI, and more with minimal code changes. Switch between providers or use them together seamlessly. [Learn more about Universal API](https://portkey.ai/docs/product/ai-gateway/universal-api)
+
+
+Easily switch between different LLM providers:
+
+```python
+# Anthropic Configuration
+anthropic_llm = LLM(
+    model="claude-3-5-sonnet-latest",
+    base_url=PORTKEY_GATEWAY_URL,
+    api_key="dummy",
+    extra_headers=createHeaders(
+        api_key="YOUR_PORTKEY_API_KEY",
+        virtual_key="YOUR_ANTHROPIC_VIRTUAL_KEY", #You don't need provider when using Virtual keys
+        trace_id="anthropic_agent"
+    )
+)
+
+# Azure OpenAI Configuration
+azure_llm = LLM(
+    model="gpt-4",
+    base_url=PORTKEY_GATEWAY_URL,
+    api_key="dummy",
+    extra_headers=createHeaders(
+        api_key="YOUR_PORTKEY_API_KEY",
+        virtual_key="YOUR_AZURE_VIRTUAL_KEY", #You don't need provider when using Virtual keys
+        trace_id="azure_agent"
+    )
+)
+```
+
+
+### 2. Caching
+Improve response times and reduce costs with two powerful caching modes:
+- **Simple Cache**: Perfect for exact matches
+- **Semantic Cache**: Matches responses for requests that are semantically similar
+[Learn more about Caching](https://portkey.ai/docs/product/ai-gateway/cache-simple-and-semantic)
+
+```py
+config = {
+    "cache": {
+        "mode": "semantic",  # or "simple" for exact matching
+    }
+}
+```
+
+### 3. Production Reliability
+Portkey provides comprehensive reliability features:
+- **Automatic Retries**: Handle temporary failures gracefully
+- **Request Timeouts**: Prevent hanging operations
+- **Conditional Routing**: Route requests based on specific conditions
+- **Fallbacks**: Set up automatic provider failovers
+- **Load Balancing**: Distribute requests efficiently
+
+[Learn more about Reliability Features](https://portkey.ai/docs/product/ai-gateway/)
+
+
+
+### 4. Metrics
+
+Agent runs are complex. Portkey automatically logs **40+ comprehensive metrics** for your AI agents, including cost, tokens used, latency, etc. Whether you need a broad overview or granular insights into your agent runs, Portkey's customizable filters provide the metrics you need.
+
+
+- Cost per agent interaction
+- Response times and latency
+- Token usage and efficiency
+- Success/failure rates
+- Cache hit rates
+
+<img src="https://github.com/siddharthsambharia-portkey/Portkey-Product-Images/blob/main/Portkey-Dashboard.png?raw=true" width="70%" alt="Portkey Dashboard" />
+
+### 5. Detailed Logging
+Logs are essential for understanding agent behavior, diagnosing issues, and improving performance. They provide a detailed record of agent activities and tool use, which is crucial for debugging and optimizing processes.
+
+
+Access a dedicated section to view records of agent executions, including parameters, outcomes, function calls, and errors. Filter logs based on multiple parameters such as trace ID, model, tokens used, and metadata.
+
+<details>
+  <summary><b>Traces</b></summary>
+  <img src="https://raw.githubusercontent.com/siddharthsambharia-portkey/Portkey-Product-Images/main/Portkey-Traces.png" alt="Portkey Traces" width="70%" />
+</details>
+
+<details>
+  <summary><b>Logs</b></summary>
+  <img src="https://raw.githubusercontent.com/siddharthsambharia-portkey/Portkey-Product-Images/main/Portkey-Logs.png" alt="Portkey Logs" width="70%" />
+</details>
+
+### 6. Enterprise Security Features
+- Set budget limit and rate limts per Virtual Key (disposable API keys)
+- Implement role-based access control
+- Track system changes with audit logs
+- Configure data retention policies
+
+
+
+For detailed information on creating and managing Configs, visit the [Portkey documentation](https://docs.portkey.ai/product/ai-gateway/configs).
+
+## Resources
+
+- [ðŸ“˜ Portkey Documentation](https://docs.portkey.ai)
+- [ðŸ“Š Portkey Dashboard](https://app.portkey.ai/?utm_source=crewai&utm_medium=crewai&utm_campaign=crewai)
+- [ðŸ¦ Twitter](https://twitter.com/portkeyai)
+- [ðŸ’¬ Discord Community](https://discord.gg/DD7vgKK299)
+
+
+
+---
+File: /how-to/replay-tasks-from-latest-crew-kickoff.mdx
+---
+
+---
+title: Replay Tasks from Latest Crew Kickoff
+description: Replay tasks from the latest crew.kickoff(...)
+icon: arrow-right
+---
+
+## Introduction
+
+CrewAI provides the ability to replay from a task specified from the latest crew kickoff. This feature is particularly useful when you've finished a kickoff and may want to retry certain tasks or don't need to refetch data over and your agents already have the context saved from the kickoff execution so you just need to replay the tasks you want to.
+
+<Note>
+    You must run `crew.kickoff()` before you can replay a task. 
+    Currently, only the latest kickoff is supported, so if you use `kickoff_for_each`, it will only allow you to replay from the most recent crew run.
+</Note>
+
+Here's an example of how to replay from a task:
+
+### Replaying from Specific Task Using the CLI
+
+To use the replay feature, follow these steps:
+
+<Steps>
+   <Step title="Open your terminal or command prompt.">
+   </Step>
+   <Step title="Navigate to the directory where your CrewAI project is located.">
+   </Step>
+   <Step title="Run the following commands:">
+      To view the latest kickoff task_ids use:
+
+      ```shell
+      crewai log-tasks-outputs
+      ```
+
+      Once you have your `task_id` to replay, use:
+
+      ```shell
+      crewai replay -t <task_id>
+      ```
+   </Step>
+</Steps>
+
+<Note>
+    Ensure `crewai` is installed and configured correctly in your development environment.
+</Note>
+
+### Replaying from a Task Programmatically
+
+To replay from a task programmatically, use the following steps:
+
+<Steps>
+   <Step title="Specify the `task_id` and input parameters for the replay process.">
+      Specify the `task_id` and input parameters for the replay process.
+   </Step>
+   <Step title="Execute the replay command within a try-except block to handle potential errors.">
+      Execute the replay command within a try-except block to handle potential errors.
+      <CodeGroup>
+          ```python Code
+            def replay():
+            """
+            Replay the crew execution from a specific task.
+            """
+            task_id = '<task_id>'
+            inputs = {"topic": "CrewAI Training"}  # This is optional; you can pass in the inputs you want to replay; otherwise, it uses the previous kickoff's inputs.
+            try:
+                YourCrewName_Crew().crew().replay(task_id=task_id, inputs=inputs)
+
+            except subprocess.CalledProcessError as e:
+                raise Exception(f"An error occurred while replaying the crew: {e}")
+
+            except Exception as e:
+                raise Exception(f"An unexpected error occurred: {e}")
+            ```
+      </CodeGroup>
+   </Step>
+</Steps>
+
+## Conclusion
+
+With the above enhancements and detailed functionality, replaying specific tasks in CrewAI has been made more efficient and robust. 
+Ensure you follow the commands and steps precisely to make the most of these features.
+
+
+---
+File: /how-to/sequential-process.mdx
+---
+
+---
+title: Sequential Processes
+description: A comprehensive guide to utilizing the sequential processes for task execution in CrewAI projects.
+icon: forward
+---
+
+## Introduction
+
+CrewAI offers a flexible framework for executing tasks in a structured manner, supporting both sequential and hierarchical processes. 
+This guide outlines how to effectively implement these processes to ensure efficient task execution and project completion.
+
+## Sequential Process Overview
+
+The sequential process ensures tasks are executed one after the other, following a linear progression. 
+This approach is ideal for projects requiring tasks to be completed in a specific order.
+
+### Key Features
+
+- **Linear Task Flow**: Ensures orderly progression by handling tasks in a predetermined sequence.
+- **Simplicity**: Best suited for projects with clear, step-by-step tasks.
+- **Easy Monitoring**: Facilitates easy tracking of task completion and project progress.
+
+## Implementing the Sequential Process
+
+To use the sequential process, assemble your crew and define tasks in the order they need to be executed.
+
+```python Code
+from crewai import Crew, Process, Agent, Task, TaskOutput, CrewOutput
+
+# Define your agents
+researcher = Agent(
+  role='Researcher',
+  goal='Conduct foundational research',
+  backstory='An experienced researcher with a passion for uncovering insights'
+)
+analyst = Agent(
+  role='Data Analyst',
+  goal='Analyze research findings',
+  backstory='A meticulous analyst with a knack for uncovering patterns'
+)
+writer = Agent(
+  role='Writer',
+  goal='Draft the final report',
+  backstory='A skilled writer with a talent for crafting compelling narratives'
+)
+
+# Define your tasks
+research_task = Task(
+  description='Gather relevant data...', 
+  agent=researcher, 
+  expected_output='Raw Data'
+)
+analysis_task = Task(
+  description='Analyze the data...', 
+  agent=analyst, 
+  expected_output='Data Insights'
+)
+writing_task = Task(
+  description='Compose the report...', 
+  agent=writer, 
+  expected_output='Final Report'
+)
+
+# Form the crew with a sequential process
+report_crew = Crew(
+  agents=[researcher, analyst, writer],
+  tasks=[research_task, analysis_task, writing_task],
+  process=Process.sequential
+)
+
+# Execute the crew
+result = report_crew.kickoff()
+
+# Accessing the type-safe output
+task_output: TaskOutput = result.tasks[0].output
+crew_output: CrewOutput = result.output
+```
+
+### Note:
+
+Each task in a sequential process **must** have an agent assigned. Ensure that every `Task` includes an `agent` parameter.
+
+### Workflow in Action
+
+1. **Initial Task**: In a sequential process, the first agent completes their task and signals completion.
+2. **Subsequent Tasks**: Agents pick up their tasks based on the process type, with outcomes of preceding tasks or directives guiding their execution.
+3. **Completion**: The process concludes once the final task is executed, leading to project completion.
+
+## Advanced Features
+
+### Task Delegation
+
+In sequential processes, if an agent has `allow_delegation` set to `True`, they can delegate tasks to other agents in the crew. 
+This feature is automatically set up when there are multiple agents in the crew.
+
+### Asynchronous Execution
+
+Tasks can be executed asynchronously, allowing for parallel processing when appropriate. 
+To create an asynchronous task, set `async_execution=True` when defining the task.
+
+### Memory and Caching
+
+CrewAI supports both memory and caching features:
+
+- **Memory**: Enable by setting `memory=True` when creating the Crew. This allows agents to retain information across tasks.
+- **Caching**: By default, caching is enabled. Set `cache=False` to disable it.
+
+### Callbacks
+
+You can set callbacks at both the task and step level:
+
+- `task_callback`: Executed after each task completion.
+- `step_callback`: Executed after each step in an agent's execution.
+
+### Usage Metrics
+
+CrewAI tracks token usage across all tasks and agents. You can access these metrics after execution.
+
+## Best Practices for Sequential Processes
+
+1. **Order Matters**: Arrange tasks in a logical sequence where each task builds upon the previous one.
+2. **Clear Task Descriptions**: Provide detailed descriptions for each task to guide the agents effectively.
+3. **Appropriate Agent Selection**: Match agents' skills and roles to the requirements of each task.
+4. **Use Context**: Leverage the context from previous tasks to inform subsequent ones.
+
+This updated documentation ensures that details accurately reflect the latest changes in the codebase and clearly describes how to leverage new features and configurations. 
+The content is kept simple and direct to ensure easy understanding.
+
+
+---
+File: /snippets/snippet-intro.mdx
+---
+
+One of the core principles of software development is DRY (Don't Repeat
+Yourself). This is a principle that apply to documentation as
+well. If you find yourself repeating the same content in multiple places, you
+should consider creating a custom snippet to keep your content in sync.
+
+
+
+---
+File: /tools/browserbaseloadtool.mdx
+---
+
+---
+title: Browserbase Web Loader
+description: Browserbase is a developer platform to reliably run, manage, and monitor headless browsers.
+icon: browser 
+---
+
+# `BrowserbaseLoadTool`
+
+## Description
+
+[Browserbase](https://browserbase.com) is a developer platform to reliably run, manage, and monitor headless browsers.
+
+Power your AI data retrievals with:
+
+ - [Serverless Infrastructure](https://docs.browserbase.com/under-the-hood) providing reliable browsers to extract data from complex UIs
+ - [Stealth Mode](https://docs.browserbase.com/features/stealth-mode) with included fingerprinting tactics and automatic captcha solving
+ - [Session Debugger](https://docs.browserbase.com/features/sessions) to inspect your Browser Session with networks timeline and logs
+ - [Live Debug](https://docs.browserbase.com/guides/session-debug-connection/browser-remote-control) to quickly debug your automation
+
+## Installation
+
+- Get an API key and Project ID from [browserbase.com](https://browserbase.com) and set it in environment variables (`BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`).
+- Install the [Browserbase SDK](http://github.com/browserbase/python-sdk) along with `crewai[tools]` package:
+
+```shell
+pip install browserbase 'crewai[tools]'
+```
+
+## Example
+
+Utilize the BrowserbaseLoadTool as follows to allow your agent to load websites:
+
+```python Code
+from crewai_tools import BrowserbaseLoadTool
+
+# Initialize the tool with the Browserbase API key and Project ID
+tool = BrowserbaseLoadTool()
+```
+
+## Arguments
+
+The following parameters can be used to customize the `BrowserbaseLoadTool`'s behavior:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **api_key**    | `string` | _Optional_. Browserbase API key. Default is `BROWSERBASE_API_KEY` env variable.                                                |
+| **project_id** | `string` | _Optional_. Browserbase Project ID. Default is `BROWSERBASE_PROJECT_ID` env variable.                                                |
+| **text_content** | `bool` | _Optional_. Retrieve only text content. Default is `False`.                                                |
+| **session_id** | `string` | _Optional_. Provide an existing Session ID.                                                |
+| **proxy**      | `bool`   | _Optional_. Enable/Disable Proxies. Default is `False`.                                                |
+
+
+---
+File: /tools/codedocssearchtool.mdx
+---
+
+---
+title: Code Docs RAG Search
+description: The `CodeDocsSearchTool` is a powerful RAG (Retrieval-Augmented Generation) tool designed for semantic searches within code documentation.
+icon: code
+---
+
+# `CodeDocsSearchTool`
+
+<Note>
+    **Experimental**: We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The CodeDocsSearchTool is a powerful RAG (Retrieval-Augmented Generation) tool designed for semantic searches within code documentation. 
+It enables users to efficiently find specific information or topics within code documentation. By providing a `docs_url` during initialization, 
+the tool narrows down the search to that particular documentation site. Alternatively, without a specific `docs_url`, 
+it searches across a wide array of code documentation known or discovered throughout its execution, making it versatile for various documentation search needs.
+
+## Installation
+
+To start using the CodeDocsSearchTool, first, install the crewai_tools package via pip:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+Utilize the CodeDocsSearchTool as follows to conduct searches within code documentation:
+
+```python Code
+from crewai_tools import CodeDocsSearchTool
+
+# To search any code documentation content 
+# if the URL is known or discovered during its execution:
+tool = CodeDocsSearchTool()
+
+# OR
+
+# To specifically focus your search on a given documentation site 
+# by providing its URL:
+tool = CodeDocsSearchTool(docs_url='https://docs.example.com/reference')
+```
+<Note>  
+    Substitute 'https://docs.example.com/reference' with your target documentation URL 
+    and 'How to use search tool' with the search query relevant to your needs.
+</Note>
+
+## Arguments
+
+The following parameters can be used to customize the `CodeDocsSearchTool`'s behavior:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **docs_url**    | `string` | _Optional_. Specifies the URL of the code documentation to be searched.                                                | 
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = CodeDocsSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/codeinterpretertool.mdx
+---
+
+---
+title: Code Interpreter
+description: The `CodeInterpreterTool` is a powerful tool designed for executing Python 3 code within a secure, isolated environment.
+icon: code-simple
+---
+
+# `CodeInterpreterTool`
+
+## Description
+
+This tool enables the Agent to execute Python 3 code that it has generated autonomously. The code is run in a secure, isolated environment, ensuring safety regardless of the content. 
+
+This functionality is particularly valuable as it allows the Agent to create code, execute it within the same ecosystem, 
+obtain the results, and utilize that information to inform subsequent decisions and actions.
+
+## Requirements
+
+- Docker
+
+## Installation
+
+Install the `crewai_tools` package
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+Remember that when using this tool, the code must be generated by the Agent itself. 
+The code must be a Python3 code. And it will take some time for the first time to run 
+because it needs to build the Docker image.
+
+```python Code
+from crewai import Agent
+from crewai_tools import CodeInterpreterTool
+
+Agent(
+    ...
+    tools=[CodeInterpreterTool()],
+)
+```
+
+We also provide a simple way to use it directly from the Agent.
+
+```python Code
+from crewai import Agent
+
+agent = Agent(
+    ...
+    allow_code_execution=True,
+)
+```
+
+
+
+---
+File: /tools/composiotool.mdx
+---
+
+---
+title: Composio Tool
+description: Composio provides 250+ production-ready tools for AI agents with flexible authentication management.
+icon: gear-code
+---
+
+# `ComposioToolSet`
+
+## Description
+Composio is an integration platform that allows you to connect your AI agents to 250+ tools. Key features include:
+
+- **Enterprise-Grade Authentication**: Built-in support for OAuth, API Keys, JWT with automatic token refresh
+- **Full Observability**: Detailed tool usage logs, execution timestamps, and more
+
+## Installation
+
+To incorporate Composio tools into your project, follow the instructions below:
+
+```shell
+pip install composio-crewai
+pip install crewai
+```
+
+After the installation is complete, either run `composio login` or export your composio API key as `COMPOSIO_API_KEY`. Get your Composio API key from [here](https://app.composio.dev)
+
+## Example
+
+The following example demonstrates how to initialize the tool and execute a github action:
+
+1. Initialize Composio toolset
+
+```python Code
+from composio_crewai import ComposioToolSet, App, Action
+from crewai import Agent, Task, Crew
+
+toolset = ComposioToolSet()
+```
+
+2. Connect your GitHub account
+<CodeGroup>
+```shell CLI
+composio add github
+```
+```python Code
+request = toolset.initiate_connection(app=App.GITHUB)
+print(f"Open this URL to authenticate: {request.redirectUrl}")
+```
+</CodeGroup>
+
+3. Get Tools
+
+- Retrieving all the tools from an app (not recommended for production):
+```python Code
+tools = toolset.get_tools(apps=[App.GITHUB])
+```
+
+- Filtering tools based on tags:
+```python Code
+tag = "users"
+
+filtered_action_enums = toolset.find_actions_by_tags(
+    App.GITHUB,
+    tags=[tag], 
+)
+
+tools = toolset.get_tools(actions=filtered_action_enums)
+```
+
+- Filtering tools based on use case:
+```python Code
+use_case = "Star a repository on GitHub"
+
+filtered_action_enums = toolset.find_actions_by_use_case(
+    App.GITHUB, use_case=use_case, advanced=False
+)
+
+tools = toolset.get_tools(actions=filtered_action_enums)
+```
+<Tip>Set `advanced` to True to get actions for complex use cases</Tip>
+
+- Using specific tools:
+
+In this demo, we will use the `GITHUB_STAR_A_REPOSITORY_FOR_THE_AUTHENTICATED_USER` action from the GitHub app.
+```python Code
+tools = toolset.get_tools(
+    actions=[Action.GITHUB_STAR_A_REPOSITORY_FOR_THE_AUTHENTICATED_USER]
+)
+```
+Learn more about filtering actions [here](https://docs.composio.dev/patterns/tools/use-tools/use-specific-actions)
+
+4. Define agent
+
+```python Code
+crewai_agent = Agent(
+    role="GitHub Agent",
+    goal="You take action on GitHub using GitHub APIs",
+    backstory="You are AI agent that is responsible for taking actions on GitHub on behalf of users using GitHub APIs",
+    verbose=True,
+    tools=tools,
+    llm= # pass an llm
+)
+```
+
+5. Execute task
+
+```python Code
+task = Task(
+    description="Star a repo composiohq/composio on GitHub",
+    agent=crewai_agent,
+    expected_output="Status of the operation",
+)
+
+crew = Crew(agents=[crewai_agent], tasks=[task])
+
+crew.kickoff()
+```
+
+* More detailed list of tools can be found [here](https://app.composio.dev)
+
+
+
+---
+File: /tools/csvsearchtool.mdx
+---
+
+---
+title: CSV RAG Search
+description: The `CSVSearchTool` is a powerful RAG (Retrieval-Augmented Generation) tool designed for semantic searches within a CSV file's content.
+icon: file-csv
+---
+
+# `CSVSearchTool`
+
+<Note>
+    **Experimental**: We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+This tool is used to perform a RAG (Retrieval-Augmented Generation) search within a CSV file's content. It allows users to semantically search for queries in the content of a specified CSV file. 
+This feature is particularly useful for extracting information from large CSV datasets where traditional search methods might be inefficient. All tools with "Search" in their name, including CSVSearchTool, 
+are RAG tools designed for searching different sources of data.
+
+## Installation
+
+Install the crewai_tools package
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+```python Code
+from crewai_tools import CSVSearchTool
+
+# Initialize the tool with a specific CSV file. 
+# This setup allows the agent to only search the given CSV file.
+tool = CSVSearchTool(csv='path/to/your/csvfile.csv')
+
+# OR
+
+# Initialize the tool without a specific CSV file. 
+# Agent will need to provide the CSV path at runtime.
+tool = CSVSearchTool()
+```
+
+## Arguments
+
+The following parameters can be used to customize the `CSVSearchTool`'s behavior:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **csv**        | `string` | _Optional_. The path to the CSV file you want to search. This is a mandatory argument if the tool was initialized without a specific CSV file; otherwise, it is optional.                                                                            |
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = CSVSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/dalletool.mdx
+---
+
+---
+title: DALL-E Tool
+description: The `DallETool` is a powerful tool designed for generating images from textual descriptions.
+icon: image
+---
+
+# `DallETool`
+
+## Description
+
+This tool is used to give the Agent the ability to generate images using the DALL-E model. It is a transformer-based model that generates images from textual descriptions. 
+This tool allows the Agent to generate images based on the text input provided by the user.
+
+## Installation
+
+Install the crewai_tools package
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+Remember that when using this tool, the text must be generated by the Agent itself. The text must be a description of the image you want to generate.
+
+```python Code
+from crewai_tools import DallETool
+
+Agent(
+    ...
+    tools=[DallETool()],
+)
+```
+
+If needed you can also tweak the parameters of the DALL-E model by passing them as arguments to the `DallETool` class. For example:
+
+```python Code
+from crewai_tools import DallETool
+
+dalle_tool = DallETool(model="dall-e-3",
+                       size="1024x1024",
+                       quality="standard",
+                       n=1)
+
+Agent(
+    ...
+    tools=[dalle_tool]
+)
+```
+
+The parameters are based on the `client.images.generate` method from the OpenAI API. For more information on the parameters, 
+please refer to the [OpenAI API documentation](https://platform.openai.com/docs/guides/images/introduction?lang=python).
+
+
+---
+File: /tools/directoryreadtool.mdx
+---
+
+---
+title: Directory Read
+description: The `DirectoryReadTool` is a powerful utility designed to provide a comprehensive listing of directory contents.
+icon: folder-tree
+---
+
+# `DirectoryReadTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The DirectoryReadTool is a powerful utility designed to provide a comprehensive listing of directory contents. 
+It can recursively navigate through the specified directory, offering users a detailed enumeration of all files, including those within subdirectories. 
+This tool is crucial for tasks that require a thorough inventory of directory structures or for validating the organization of files within directories.
+
+## Installation
+
+To utilize the DirectoryReadTool in your project, install the `crewai_tools` package. If this package is not yet part of your environment, you can install it using pip with the command below:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+This command installs the latest version of the `crewai_tools` package, granting access to the DirectoryReadTool among other utilities.
+
+## Example
+
+Employing the DirectoryReadTool is straightforward. The following code snippet demonstrates how to set it up and use the tool to list the contents of a specified directory:
+
+```python Code
+from crewai_tools import DirectoryReadTool
+
+# Initialize the tool so the agent can read any directory's content 
+# it learns about during execution
+tool = DirectoryReadTool()
+
+# OR
+
+# Initialize the tool with a specific directory, 
+# so the agent can only read the content of the specified directory
+tool = DirectoryReadTool(directory='/path/to/your/directory')
+```
+
+## Arguments
+
+The following parameters can be used to customize the `DirectoryReadTool`'s behavior:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **directory**  | `string` | _Optional_. An argument that specifies the path to the directory whose contents you wish to list. It accepts both absolute and relative paths, guiding the tool to the desired directory for content listing. |
+
+
+
+---
+File: /tools/directorysearchtool.mdx
+---
+
+---
+title: Directory RAG Search
+description: The `DirectorySearchTool` is a powerful RAG (Retrieval-Augmented Generation) tool designed for semantic searches within a directory's content.
+icon: address-book
+---
+
+# `DirectorySearchTool`
+
+<Note>
+    **Experimental**: The DirectorySearchTool is under continuous development. Features and functionalities might evolve, and unexpected behavior may occur as we refine the tool.
+</Note>
+
+## Description
+
+The DirectorySearchTool enables semantic search within the content of specified directories, leveraging the Retrieval-Augmented Generation (RAG) methodology for efficient navigation through files. Designed for flexibility, it allows users to dynamically specify search directories at runtime or set a fixed directory during initial setup.
+
+## Installation
+
+To use the DirectorySearchTool, begin by installing the crewai_tools package. Execute the following command in your terminal:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Initialization and Usage
+
+Import the DirectorySearchTool from the `crewai_tools` package to start. You can initialize the tool without specifying a directory, enabling the setting of the search directory at runtime. Alternatively, the tool can be initialized with a predefined directory.
+
+```python Code
+from crewai_tools import DirectorySearchTool
+
+# For dynamic directory specification at runtime
+tool = DirectorySearchTool()
+
+# For fixed directory searches
+tool = DirectorySearchTool(directory='/path/to/directory')
+```
+
+## Arguments
+
+- `directory`: A string argument that specifies the search directory. This is optional during initialization but required for searches if not set initially.
+
+## Custom Model and Embeddings
+
+The DirectorySearchTool uses OpenAI for embeddings and summarization by default. Customization options for these settings include changing the model provider and configuration, enhancing flexibility for advanced users.
+
+```python Code
+tool = DirectorySearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # Options include ollama, google, anthropic, llama2, and more
+            config=dict(
+                model="llama2",
+                # Additional configurations here
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/docxsearchtool.mdx
+---
+
+---
+title: DOCX RAG Search
+description: The `DOCXSearchTool` is a RAG tool designed for semantic searching within DOCX documents.

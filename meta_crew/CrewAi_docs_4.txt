@@ -1,0 +1,2849 @@
+icon: file-word
+---
+
+# `DOCXSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The `DOCXSearchTool` is a RAG tool designed for semantic searching within DOCX documents. 
+It enables users to effectively search and extract relevant information from DOCX files using query-based searches.
+This tool is invaluable for data analysis, information management, and research tasks, 
+streamlining the process of finding specific information within large document collections.
+
+## Installation
+
+Install the crewai_tools package by running the following command in your terminal:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+The following example demonstrates initializing the DOCXSearchTool to search within any DOCX file's content or with a specific DOCX file path.
+
+```python Code
+from crewai_tools import DOCXSearchTool
+
+# Initialize the tool to search within any DOCX file's content
+tool = DOCXSearchTool()
+
+# OR
+
+# Initialize the tool with a specific DOCX file, 
+# so the agent can only search the content of the specified DOCX file
+tool = DOCXSearchTool(docx='path/to/your/document.docx')
+```
+
+## Arguments
+
+The following parameters can be used to customize the `DOCXSearchTool`'s behavior:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **docx**        | `string` | _Optional_. An argument that specifies the path to the DOCX file you want to search. If not provided during initialization, the tool allows for later specification of any DOCX file's content path for searching. |
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = DOCXSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/exasearchtool.mdx
+---
+
+---
+title: EXA Search Web Loader
+description: The `EXASearchTool` is designed to perform a semantic search for a specified query from a text's content across the internet.
+icon: globe-pointer
+---
+
+# `EXASearchTool`
+
+## Description
+
+The EXASearchTool is designed to perform a semantic search for a specified query from a text's content across the internet. 
+It utilizes the [exa.ai](https://exa.ai/) API to fetch and display the most relevant search results based on the query provided by the user.
+
+## Installation
+
+To incorporate this tool into your project, follow the installation instructions below:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+The following example demonstrates how to initialize the tool and execute a search with a given query:
+
+```python Code
+from crewai_tools import EXASearchTool
+
+# Initialize the tool for internet searching capabilities
+tool = EXASearchTool()
+```
+
+## Steps to Get Started
+
+To effectively use the EXASearchTool, follow these steps:
+
+<Steps>
+    <Step title="Package Installation">
+        Confirm that the `crewai[tools]` package is installed in your Python environment.
+    </Step>
+    <Step title="API Key Acquisition">
+        Acquire a [exa.ai](https://exa.ai/) API key by registering for a free account at [exa.ai](https://exa.ai/).
+    </Step>
+    <Step title="Environment Configuration">
+        Store your obtained API key in an environment variable named `EXA_API_KEY` to facilitate its use by the tool.
+    </Step>
+</Steps>
+
+## Conclusion
+
+By integrating the `EXASearchTool` into Python projects, users gain the ability to conduct real-time, relevant searches across the internet directly from their applications. 
+By adhering to the setup and usage guidelines provided, incorporating this tool into projects is streamlined and straightforward.
+
+
+
+---
+File: /tools/filereadtool.mdx
+---
+
+---
+title: File Read
+description: The `FileReadTool` is designed to read files from the local file system.
+icon: folders
+---
+
+# `FileReadTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The FileReadTool conceptually represents a suite of functionalities within the crewai_tools package aimed at facilitating file reading and content retrieval. 
+This suite includes tools for processing batch text files, reading runtime configuration files, and importing data for analytics. 
+It supports a variety of text-based file formats such as `.txt`, `.csv`, `.json`, and more. Depending on the file type, the suite offers specialized functionality, 
+such as converting JSON content into a Python dictionary for ease of use.
+
+## Installation
+
+To utilize the functionalities previously attributed to the FileReadTool, install the crewai_tools package:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage Example
+
+To get started with the FileReadTool:
+
+```python Code
+from crewai_tools import FileReadTool
+
+# Initialize the tool to read any files the agents knows or lean the path for
+file_read_tool = FileReadTool()
+
+# OR
+
+# Initialize the tool with a specific file path, so the agent can only read the content of the specified file
+file_read_tool = FileReadTool(file_path='path/to/your/file.txt')
+```
+
+## Arguments
+
+- `file_path`: The path to the file you want to read. It accepts both absolute and relative paths. Ensure the file exists and you have the necessary permissions to access it.
+
+
+---
+File: /tools/filewritetool.mdx
+---
+
+---
+title: File Write
+description: The `FileWriterTool` is designed to write content to files.
+icon: file-pen
+---
+
+# `FileWriterTool`
+
+## Description
+
+The `FileWriterTool` is a component of the crewai_tools package, designed to simplify the process of writing content to files with cross-platform compatibility (Windows, Linux, macOS). 
+It is particularly useful in scenarios such as generating reports, saving logs, creating configuration files, and more. 
+This tool handles path differences across operating systems, supports UTF-8 encoding, and automatically creates directories if they don't exist, making it easier to organize your output reliably across different platforms.
+
+## Installation
+
+Install the crewai_tools package to use the `FileWriterTool` in your projects:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+To get started with the `FileWriterTool`:
+
+```python Code
+from crewai_tools import FileWriterTool
+
+# Initialize the tool
+file_writer_tool = FileWriterTool()
+
+# Write content to a file in a specified directory
+result = file_writer_tool._run('example.txt', 'This is a test content.', 'test_directory')
+print(result)
+```
+
+## Arguments
+
+- `filename`: The name of the file you want to create or overwrite.
+- `content`: The content to write into the file.
+- `directory` (optional): The path to the directory where the file will be created. Defaults to the current directory (`.`). If the directory does not exist, it will be created.
+
+## Conclusion
+
+By integrating the `FileWriterTool` into your crews, the agents can reliably write content to files across different operating systems. 
+This tool is essential for tasks that require saving output data, creating structured file systems, and handling cross-platform file operations. 
+It's particularly recommended for Windows users who may encounter file writing issues with standard Python file operations.
+
+By adhering to the setup and usage guidelines provided, incorporating this tool into projects is straightforward and ensures consistent file writing behavior across all platforms.
+
+
+
+---
+File: /tools/firecrawlcrawlwebsitetool.mdx
+---
+
+---
+title: Firecrawl Crawl Website
+description: The `FirecrawlCrawlWebsiteTool` is designed to crawl and convert websites into clean markdown or structured data.
+icon: fire-flame
+---
+
+# `FirecrawlCrawlWebsiteTool`
+
+## Description
+
+[Firecrawl](https://firecrawl.dev) is a platform for crawling and convert any website into clean markdown or structured data.
+
+## Installation
+
+- Get an API key from [firecrawl.dev](https://firecrawl.dev) and set it in environment variables (`FIRECRAWL_API_KEY`).
+- Install the [Firecrawl SDK](https://github.com/mendableai/firecrawl) along with `crewai[tools]` package:
+
+```shell
+pip install firecrawl-py 'crewai[tools]'
+```
+
+## Example
+
+Utilize the FirecrawlScrapeFromWebsiteTool as follows to allow your agent to load websites:
+
+```python Code
+from crewai_tools import FirecrawlCrawlWebsiteTool
+
+tool = FirecrawlCrawlWebsiteTool(url='firecrawl.dev')
+```
+
+## Arguments
+
+- `api_key`: Optional. Specifies Firecrawl API key. Defaults is the `FIRECRAWL_API_KEY` environment variable.
+- `url`: The base URL to start crawling from.
+- `page_options`: Optional. 
+  - `onlyMainContent`: Optional. Only return the main content of the page excluding headers, navs, footers, etc.
+  - `includeHtml`: Optional. Include the raw HTML content of the page. Will output a html key in the response.
+- `crawler_options`: Optional. Options for controlling the crawling behavior.
+  - `includes`: Optional. URL patterns to include in the crawl.
+  - `exclude`: Optional. URL patterns to exclude from the crawl.
+  - `generateImgAltText`: Optional. Generate alt text for images using LLMs (requires a paid plan).
+  - `returnOnlyUrls`: Optional. If true, returns only the URLs as a list in the crawl status. Note: the response will be a list of URLs inside the data, not a list of documents.
+  - `maxDepth`: Optional. Maximum depth to crawl. Depth 1 is the base URL, depth 2 includes the base URL and its direct children, and so on.
+  - `mode`: Optional. The crawling mode to use. Fast mode crawls 4x faster on websites without a sitemap but may not be as accurate and shouldn't be used on heavily JavaScript-rendered websites.
+  - `limit`: Optional. Maximum number of pages to crawl.
+  - `timeout`: Optional. Timeout in milliseconds for the crawling operation.
+
+
+
+---
+File: /tools/firecrawlscrapewebsitetool.mdx
+---
+
+---
+title: Firecrawl Scrape Website
+description: The `FirecrawlScrapeWebsiteTool` is designed to scrape websites and convert them into clean markdown or structured data.
+icon: fire-flame
+---
+
+# `FirecrawlScrapeWebsiteTool`
+
+## Description
+
+[Firecrawl](https://firecrawl.dev) is a platform for crawling and convert any website into clean markdown or structured data.
+
+## Installation
+
+- Get an API key from [firecrawl.dev](https://firecrawl.dev) and set it in environment variables (`FIRECRAWL_API_KEY`).
+- Install the [Firecrawl SDK](https://github.com/mendableai/firecrawl) along with `crewai[tools]` package:
+
+```shell
+pip install firecrawl-py 'crewai[tools]'
+```
+
+## Example
+
+Utilize the FirecrawlScrapeWebsiteTool as follows to allow your agent to load websites:
+
+```python Code
+from crewai_tools import FirecrawlScrapeWebsiteTool
+
+tool = FirecrawlScrapeWebsiteTool(url='firecrawl.dev')
+```
+
+## Arguments
+
+- `api_key`: Optional. Specifies Firecrawl API key. Defaults is the `FIRECRAWL_API_KEY` environment variable.
+- `url`: The URL to scrape.
+- `page_options`: Optional. 
+  - `onlyMainContent`: Optional. Only return the main content of the page excluding headers, navs, footers, etc.
+  - `includeHtml`: Optional. Include the raw HTML content of the page. Will output a html key in the response.
+- `extractor_options`: Optional. Options for LLM-based extraction of structured information from the page content
+  - `mode`: The extraction mode to use, currently supports 'llm-extraction'
+  - `extractionPrompt`: Optional. A prompt describing what information to extract from the page
+  - `extractionSchema`: Optional. The schema for the data to be extracted
+- `timeout`: Optional. Timeout in milliseconds for the request
+
+
+
+---
+File: /tools/firecrawlsearchtool.mdx
+---
+
+---
+title: Firecrawl Search
+description: The `FirecrawlSearchTool` is designed to search websites and convert them into clean markdown or structured data.
+icon: fire-flame
+---
+
+# `FirecrawlSearchTool`
+
+## Description
+
+[Firecrawl](https://firecrawl.dev) is a platform for crawling and convert any website into clean markdown or structured data.
+
+## Installation
+
+- Get an API key from [firecrawl.dev](https://firecrawl.dev) and set it in environment variables (`FIRECRAWL_API_KEY`).
+- Install the [Firecrawl SDK](https://github.com/mendableai/firecrawl) along with `crewai[tools]` package:
+
+```shell
+pip install firecrawl-py 'crewai[tools]'
+```
+
+## Example
+
+Utilize the FirecrawlSearchTool as follows to allow your agent to load websites:
+
+```python Code
+from crewai_tools import FirecrawlSearchTool
+
+tool = FirecrawlSearchTool(query='what is firecrawl?')
+```
+
+## Arguments
+
+- `api_key`: Optional. Specifies Firecrawl API key. Defaults is the `FIRECRAWL_API_KEY` environment variable.
+- `query`: The search query string to be used for searching.
+- `page_options`: Optional. Options for result formatting.
+  - `onlyMainContent`: Optional. Only return the main content of the page excluding headers, navs, footers, etc.
+  - `includeHtml`: Optional. Include the raw HTML content of the page. Will output a html key in the response.
+  - `fetchPageContent`: Optional. Fetch the full content of the page.
+- `search_options`: Optional. Options for controlling the crawling behavior.
+  - `limit`: Optional. Maximum number of pages to crawl.
+
+
+---
+File: /tools/githubsearchtool.mdx
+---
+
+---
+title: Github Search
+description: The `GithubSearchTool` is designed to search websites and convert them into clean markdown or structured data.
+icon: github
+---
+
+# `GithubSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The GithubSearchTool is a Retrieval-Augmented Generation (RAG) tool specifically designed for conducting semantic searches within GitHub repositories. Utilizing advanced semantic search capabilities, it sifts through code, pull requests, issues, and repositories, making it an essential tool for developers, researchers, or anyone in need of precise information from GitHub.
+
+## Installation
+
+To use the GithubSearchTool, first ensure the crewai_tools package is installed in your Python environment:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+This command installs the necessary package to run the GithubSearchTool along with any other tools included in the crewai_tools package.
+
+## Example
+
+Hereâ€™s how you can use the GithubSearchTool to perform semantic searches within a GitHub repository:
+
+```python Code
+from crewai_tools import GithubSearchTool
+
+# Initialize the tool for semantic searches within a specific GitHub repository
+tool = GithubSearchTool(
+	github_repo='https://github.com/example/repo',
+	gh_token='your_github_personal_access_token',
+	content_types=['code', 'issue'] # Options: code, repo, pr, issue
+)
+
+# OR
+
+# Initialize the tool for semantic searches within a specific GitHub repository, so the agent can search any repository if it learns about during its execution
+tool = GithubSearchTool(
+	gh_token='your_github_personal_access_token',
+	content_types=['code', 'issue'] # Options: code, repo, pr, issue
+)
+```
+
+## Arguments
+
+- `github_repo` : The URL of the GitHub repository where the search will be conducted. This is a mandatory field and specifies the target repository for your search.
+- `gh_token` : Your GitHub Personal Access Token (PAT) required for authentication. You can create one in your GitHub account settings under Developer Settings > Personal Access Tokens.
+- `content_types` : Specifies the types of content to include in your search. You must provide a list of content types from the following options: `code` for searching within the code, 
+`repo` for searching within the repository's general information, `pr` for searching within pull requests, and `issue` for searching within issues. 
+This field is mandatory and allows tailoring the search to specific content types within the GitHub repository.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = GithubSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+
+
+---
+File: /tools/jsonsearchtool.mdx
+---
+
+---
+title: JSON RAG Search
+description: The `JSONSearchTool` is designed to search JSON files and return the most relevant results.
+icon: file-code
+---
+
+# `JSONSearchTool`
+
+<Note>
+    The JSONSearchTool is currently in an experimental phase. This means the tool is under active development, and users might encounter unexpected behavior or changes. 
+    We highly encourage feedback on any issues or suggestions for improvements.
+</Note>
+
+## Description
+
+The JSONSearchTool is designed to facilitate efficient and precise searches within JSON file contents. It utilizes a RAG (Retrieve and Generate) search mechanism, allowing users to specify a JSON path for targeted searches within a particular JSON file. This capability significantly improves the accuracy and relevance of search results.
+
+## Installation
+
+To install the JSONSearchTool, use the following pip command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage Examples
+
+Here are updated examples on how to utilize the JSONSearchTool effectively for searching within JSON files. These examples take into account the current implementation and usage patterns identified in the codebase.
+
+```python Code
+from crewai.json_tools import JSONSearchTool  # Updated import path
+
+# General JSON content search
+# This approach is suitable when the JSON path is either known beforehand or can be dynamically identified.
+tool = JSONSearchTool()
+
+# Restricting search to a specific JSON file
+# Use this initialization method when you want to limit the search scope to a specific JSON file.
+tool = JSONSearchTool(json_path='./path/to/your/file.json')
+```
+
+## Arguments
+
+- `json_path` (str, optional): Specifies the path to the JSON file to be searched. This argument is not required if the tool is initialized for a general search. When provided, it confines the search to the specified JSON file.
+
+## Configuration Options
+
+The JSONSearchTool supports extensive customization through a configuration dictionary. This allows users to select different models for embeddings and summarization based on their requirements.
+
+```python Code
+tool = JSONSearchTool(
+    config={
+        "llm": {
+            "provider": "ollama",  # Other options include google, openai, anthropic, llama2, etc.
+            "config": {
+                "model": "llama2",
+                # Additional optional configurations can be specified here.
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            },
+        },
+        "embedder": {
+            "provider": "google", # or openai, ollama, ...
+            "config": {
+                "model": "models/embedding-001",
+                "task_type": "retrieval_document",
+                # Further customization options can be added here.
+            },
+        },
+    }
+)
+```
+
+
+---
+File: /tools/mdxsearchtool.mdx
+---
+
+---
+title: MDX RAG Search
+description: The `MDXSearchTool` is designed to search MDX files and return the most relevant results.
+icon: markdown
+---
+
+# `MDXSearchTool`
+
+<Note>
+    The MDXSearchTool is in continuous development. Features may be added or removed, and functionality could change unpredictably as we refine the tool.
+</Note>
+
+## Description
+
+The MDX Search Tool is a component of the `crewai_tools` package aimed at facilitating advanced markdown language extraction. It enables users to effectively search and extract relevant information from MD files using query-based searches. This tool is invaluable for data analysis, information management, and research tasks, streamlining the process of finding specific information within large document collections.
+
+## Installation
+
+Before using the MDX Search Tool, ensure the `crewai_tools` package is installed. If it is not, you can install it with the following command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage Example
+
+To use the MDX Search Tool, you must first set up the necessary environment variables. Then, integrate the tool into your crewAI project to begin your market research. Below is a basic example of how to do this:
+
+```python Code
+from crewai_tools import MDXSearchTool
+
+# Initialize the tool to search any MDX content it learns about during execution
+tool = MDXSearchTool()
+
+# OR
+
+# Initialize the tool with a specific MDX file path for an exclusive search within that document
+tool = MDXSearchTool(mdx='path/to/your/document.mdx')
+```
+
+## Parameters
+
+- mdx: **Optional**. Specifies the MDX file path for the search. It can be provided during initialization.
+
+## Customization of Model and Embeddings
+
+The tool defaults to using OpenAI for embeddings and summarization. For customization, utilize a configuration dictionary as shown below:
+
+```python Code
+tool = MDXSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # Options include google, openai, anthropic, llama2, etc.
+            config=dict(
+                model="llama2",
+                # Optional parameters can be included here.
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # Optional title for the embeddings can be added here.
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/mysqltool.mdx
+---
+
+---
+title: MySQL RAG Search
+description: The `MySQLSearchTool` is designed to search MySQL databases and return the most relevant results.
+icon: database
+---
+
+# `MySQLSearchTool`
+
+## Description
+
+This tool is designed to facilitate semantic searches within MySQL database tables. Leveraging the RAG (Retrieve and Generate) technology, 
+the MySQLSearchTool provides users with an efficient means of querying database table content, specifically tailored for MySQL databases. 
+It simplifies the process of finding relevant data through semantic search queries, making it an invaluable resource for users needing 
+to perform advanced queries on extensive datasets within a MySQL database.
+
+## Installation
+
+To install the `crewai_tools` package and utilize the MySQLSearchTool, execute the following command in your terminal:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+Below is an example showcasing how to use the MySQLSearchTool to conduct a semantic search on a table within a MySQL database:
+
+```python Code
+from crewai_tools import MySQLSearchTool
+
+# Initialize the tool with the database URI and the target table name
+tool = MySQLSearchTool(
+    db_uri='mysql://user:password@localhost:3306/mydatabase',
+    table_name='employees'
+)
+```
+
+## Arguments
+
+The MySQLSearchTool requires the following arguments for its operation:
+
+- `db_uri`: A string representing the URI of the MySQL database to be queried. This argument is mandatory and must include the necessary authentication details and the location of the database.
+- `table_name`: A string specifying the name of the table within the database on which the semantic search will be performed. This argument is mandatory.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = MySQLSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google",
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/nl2sqltool.mdx
+---
+
+---
+title: NL2SQL Tool
+description: The `NL2SQLTool` is designed to convert natural language to SQL queries.
+icon: language
+---
+
+# `NL2SQLTool`
+
+## Description
+
+This tool is used to convert natural language to SQL queries. When passsed to the agent it will generate queries and then use them to interact with the database.
+
+This enables multiple workflows like having an Agent to access the database fetch information based on the goal and then use the information to generate a response, report or any other output. 
+Along with that proivdes the ability for the Agent to update the database based on its goal.
+
+**Attention**: Make sure that the Agent has access to a Read-Replica or that is okay for the Agent to run insert/update queries on the database.
+
+## Requirements
+
+- SqlAlchemy
+- Any DB compatible library (e.g. psycopg2, mysql-connector-python)
+
+## Installation
+
+Install the crewai_tools package
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage
+
+In order to use the NL2SQLTool, you need to pass the database URI to the tool. The URI should be in the format `dialect+driver://username:password@host:port/database`.
+
+
+```python Code
+from crewai_tools import NL2SQLTool
+
+# psycopg2 was installed to run this example with PostgreSQL
+nl2sql = NL2SQLTool(db_uri="postgresql://example@localhost:5432/test_db")
+
+@agent
+def researcher(self) -> Agent:
+    return Agent(
+        config=self.agents_config["researcher"],
+        allow_delegation=False,
+        tools=[nl2sql]
+    )
+```
+
+## Example
+
+The primary task goal was:
+
+"Retrieve the average, maximum, and minimum monthly revenue for each city, but only include cities that have more than one user. Also, count the number of user in each city and 
+sort the results by the average monthly revenue in descending order"
+
+So the Agent tried to get information from the DB, the first one is wrong so the Agent tries again and gets the correct information and passes to the next agent.
+
+![alt text](https://github.com/crewAIInc/crewAI-tools/blob/main/crewai_tools/tools/nl2sql/images/image-2.png?raw=true)
+![alt text](https://github.com/crewAIInc/crewAI-tools/raw/main/crewai_tools/tools/nl2sql/images/image-3.png)
+
+
+The second task goal was:
+
+"Review the data and create a detailed report, and then create the table on the database with the fields based on the data provided.
+Include information on the average, maximum, and minimum monthly revenue for each city, but only include cities that have more than one user. Also, count the number of users in each city and sort the results by the average monthly revenue in descending order."
+
+Now things start to get interesting, the Agent generates the SQL query to not only create the table but also insert the data into the table. And in the end the Agent still returns the final report which is exactly what was in the database.
+
+![alt text](https://github.com/crewAIInc/crewAI-tools/raw/main/crewai_tools/tools/nl2sql/images/image-4.png)
+![alt text](https://github.com/crewAIInc/crewAI-tools/raw/main/crewai_tools/tools/nl2sql/images/image-5.png)
+
+![alt text](https://github.com/crewAIInc/crewAI-tools/raw/main/crewai_tools/tools/nl2sql/images/image-9.png)
+![alt text](https://github.com/crewAIInc/crewAI-tools/raw/main/crewai_tools/tools/nl2sql/images/image-7.png)
+
+
+This is a simple example of how the NL2SQLTool can be used to interact with the database and generate reports based on the data in the database.
+
+The Tool provides endless possibilities on the logic of the Agent and how it can interact with the database.
+
+```md
+ DB -> Agent -> ... -> Agent -> DB
+```
+
+
+---
+File: /tools/pdfsearchtool.mdx
+---
+
+---
+title: PDF RAG Search
+description: The `PDFSearchTool` is designed to search PDF files and return the most relevant results.
+icon: file-pdf
+---
+
+# `PDFSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The PDFSearchTool is a RAG tool designed for semantic searches within PDF content. It allows for inputting a search query and a PDF document, leveraging advanced search techniques to find relevant content efficiently. 
+This capability makes it especially useful for extracting specific information from large PDF files quickly.
+
+## Installation
+
+To get started with the PDFSearchTool, first, ensure the crewai_tools package is installed with the following command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+Here's how to use the PDFSearchTool to search within a PDF document:
+
+```python Code
+from crewai_tools import PDFSearchTool
+
+# Initialize the tool allowing for any PDF content search if the path is provided during execution
+tool = PDFSearchTool()
+
+# OR
+
+# Initialize the tool with a specific PDF path for exclusive search within that document
+tool = PDFSearchTool(pdf='path/to/your/document.pdf')
+```
+
+## Arguments
+
+- `pdf`: **Optional** The PDF path for the search. Can be provided at initialization or within the `run` method's arguments. If provided at initialization, the tool confines its search to the specified document.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = PDFSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/pgsearchtool.mdx
+---
+
+---
+title: PG RAG Search
+description: The `PGSearchTool` is designed to search PostgreSQL databases and return the most relevant results.
+icon: database
+---
+
+# `PGSearchTool`
+
+<Note>
+    The PGSearchTool is currently under development. This document outlines the intended functionality and interface. 
+    As development progresses, please be aware that some features may not be available or could change.
+</Note>
+
+## Description
+
+The PGSearchTool is envisioned as a powerful tool for facilitating semantic searches within PostgreSQL database tables. By leveraging advanced Retrieve and Generate (RAG) technology, 
+it aims to provide an efficient means for querying database table content, specifically tailored for PostgreSQL databases. 
+The tool's goal is to simplify the process of finding relevant data through semantic search queries, offering a valuable resource for users needing to conduct advanced queries on 
+extensive datasets within a PostgreSQL environment.
+
+## Installation
+
+The `crewai_tools` package, which will include the PGSearchTool upon its release, can be installed using the following command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+<Note>
+    The PGSearchTool is not yet available in the current version of the `crewai_tools` package. This installation command will be updated once the tool is released.
+</Note>
+
+## Example Usage
+
+Below is a proposed example showcasing how to use the PGSearchTool for conducting a semantic search on a table within a PostgreSQL database:
+
+```python Code
+from crewai_tools import PGSearchTool
+
+# Initialize the tool with the database URI and the target table name
+tool = PGSearchTool(
+    db_uri='postgresql://user:password@localhost:5432/mydatabase', 
+    table_name='employees'
+)
+```
+
+## Arguments
+
+The PGSearchTool is designed to require the following arguments for its operation:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **db_uri**     | `string` | **Mandatory**. A string representing the URI of the PostgreSQL database to be queried. This argument will be mandatory and must include the necessary authentication details and the location of the database. |
+| **table_name** | `string` | **Mandatory**. A string specifying the name of the table within the database on which the semantic search will be performed. This argument will also be mandatory. |
+
+## Custom Model and Embeddings
+
+The tool intends to use OpenAI for both embeddings and summarization by default. Users will have the option to customize the model using a config dictionary as follows:
+
+```python Code
+tool = PGSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/scrapewebsitetool.mdx
+---
+
+---
+title: Scrape Website
+description: The `ScrapeWebsiteTool` is designed to extract and read the content of a specified website.
+icon: magnifying-glass-location
+---
+
+# `ScrapeWebsiteTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+A tool designed to extract and read the content of a specified website. It is capable of handling various types of web pages by making HTTP requests and parsing the received HTML content. 
+This tool can be particularly useful for web scraping tasks, data collection, or extracting specific information from websites.
+
+## Installation
+
+Install the crewai_tools package
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+```python
+from crewai_tools import ScrapeWebsiteTool
+
+# To enable scrapping any website it finds during it's execution
+tool = ScrapeWebsiteTool()
+
+# Initialize the tool with the website URL, 
+# so the agent can only scrap the content of the specified website
+tool = ScrapeWebsiteTool(website_url='https://www.example.com')
+
+# Extract the text from the site
+text = tool.run()
+print(text)
+```
+
+## Arguments
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **website_url**  | `string`   | **Mandatory** website URL to read the file. This is the primary input for the tool, specifying which website's content should be scraped and read.                                                |
+
+
+
+---
+File: /tools/seleniumscrapingtool.mdx
+---
+
+---
+title: Selenium Scraper
+description: The `SeleniumScrapingTool` is designed to extract and read the content of a specified website using Selenium.
+icon: clipboard-user
+---
+
+# `SeleniumScrapingTool`
+
+<Note>
+    This tool is currently in development. As we refine its capabilities, users may encounter unexpected behavior. 
+    Your feedback is invaluable to us for making improvements.
+</Note>
+
+## Description
+
+The SeleniumScrapingTool is crafted for high-efficiency web scraping tasks. 
+It allows for precise extraction of content from web pages by using CSS selectors to target specific elements. 
+Its design caters to a wide range of scraping needs, offering flexibility to work with any provided website URL.
+
+## Installation
+
+To get started with the SeleniumScrapingTool, install the crewai_tools package using pip:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage Examples
+
+Below are some scenarios where the SeleniumScrapingTool can be utilized:
+
+```python Code
+from crewai_tools import SeleniumScrapingTool
+
+# Example 1: 
+# Initialize the tool without any parameters to scrape 
+# the current page it navigates to
+tool = SeleniumScrapingTool()
+
+# Example 2: 
+# Scrape the entire webpage of a given URL
+tool = SeleniumScrapingTool(website_url='https://example.com')
+
+# Example 3: 
+# Target and scrape a specific CSS element from a webpage
+tool = SeleniumScrapingTool(
+    website_url='https://example.com',
+    css_element='.main-content'
+)
+
+# Example 4: 
+# Perform scraping with additional parameters for a customized experience
+tool = SeleniumScrapingTool(
+    website_url='https://example.com',
+    css_element='.main-content',
+    cookie={'name': 'user', 'value': 'John Doe'},
+    wait_time=10
+)
+```
+
+## Arguments
+
+The following parameters can be used to customize the SeleniumScrapingTool's scraping process:
+
+| Argument       | Type     | Description                                                                                                                         |
+|:---------------|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **website_url**  | `string`   | **Mandatory**. Specifies the URL of the website from which content is to be scraped.                                                |
+| **css_element**  | `string`   | **Mandatory**. The CSS selector for a specific element to target on the website, enabling focused scraping of a particular part of a webpage. |
+| **cookie**       | `object`   | **Optional**. A dictionary containing cookie information, useful for simulating a logged-in session to access restricted content.    |
+| **wait_time**    | `int`      | **Optional**. Specifies the delay (in seconds) before scraping, allowing the website and any dynamic content to fully load.          |
+
+
+<Warning>
+    Since the `SeleniumScrapingTool` is under active development, the parameters and functionality may evolve over time. 
+    Users are encouraged to keep the tool updated and report any issues or suggestions for enhancements.
+</Warning>
+
+
+
+---
+File: /tools/serperdevtool.mdx
+---
+
+---
+title: Google Serper Search
+description: The `SerperDevTool` is designed to search the internet and return the most relevant results.
+icon: google
+---
+
+# `SerperDevTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+This tool is designed to perform a semantic search for a specified query from a text's content across the internet. It utilizes the [serper.dev](https://serper.dev) API 
+to fetch and display the most relevant search results based on the query provided by the user.
+
+## Installation
+
+To incorporate this tool into your project, follow the installation instructions below:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+The following example demonstrates how to initialize the tool and execute a search with a given query:
+
+```python Code
+from crewai_tools import SerperDevTool
+
+# Initialize the tool for internet searching capabilities
+tool = SerperDevTool()
+```
+
+## Steps to Get Started
+
+To effectively use the `SerperDevTool`, follow these steps:
+
+1. **Package Installation**: Confirm that the `crewai[tools]` package is installed in your Python environment.
+2. **API Key Acquisition**: Acquire a `serper.dev` API key by registering for a free account at `serper.dev`.
+3. **Environment Configuration**: Store your obtained API key in an environment variable named `SERPER_API_KEY` to facilitate its use by the tool.
+
+## Parameters
+
+The `SerperDevTool` comes with several parameters that will be passed to the API :
+
+- **search_url**: The URL endpoint for the search API. (Default is `https://google.serper.dev/search`)
+
+- **country**: Optional. Specify the country for the search results.
+- **location**: Optional. Specify the location for the search results.
+- **locale**: Optional. Specify the locale for the search results.
+- **n_results**: Number of search results to return. Default is `10`.
+
+The values for `country`, `location`, `locale` and `search_url` can be found on the [Serper Playground](https://serper.dev/playground).
+
+## Example with Parameters
+
+Here is an example demonstrating how to use the tool with additional parameters:
+
+```python Code
+from crewai_tools import SerperDevTool
+
+tool = SerperDevTool(
+    search_url="https://google.serper.dev/scholar",
+    n_results=2,
+)
+
+print(tool.run(search_query="ChatGPT"))
+
+# Using Tool: Search the internet
+
+# Search results: Title: Role of chat gpt in public health
+# Link: https://link.springer.com/article/10.1007/s10439-023-03172-7
+# Snippet: â€¦ ChatGPT in public health. In this overview, we will examine the potential uses of ChatGPT in
+# ---
+# Title: Potential use of chat gpt in global warming
+# Link: https://link.springer.com/article/10.1007/s10439-023-03171-8
+# Snippet: â€¦ as ChatGPT, have the potential to play a critical role in advancing our understanding of climate
+# ---
+
+```
+
+```python Code
+from crewai_tools import SerperDevTool
+
+tool = SerperDevTool(
+    country="fr",
+    locale="fr",
+    location="Paris, Paris, Ile-de-France, France",
+    n_results=2,
+)
+
+print(tool.run(search_query="Jeux Olympiques"))
+
+# Using Tool: Search the internet
+
+# Search results: Title: Jeux Olympiques de Paris 2024 - ActualitÃ©s, calendriers, rÃ©sultats
+# Link: https://olympics.com/fr/paris-2024
+# Snippet: Quels sont les sports prÃ©sents aux Jeux Olympiques de Paris 2024 ? Â· AthlÃ©tisme Â· Aviron Â· Badminton Â· Basketball Â· Basketball 3x3 Â· Boxe Â· Breaking Â· CanoÃ« ...
+# ---
+# Title: Billetterie Officielle de Paris 2024 - Jeux Olympiques et Paralympiques
+# Link: https://tickets.paris2024.org/
+# Snippet: Achetez vos billets exclusivement sur le site officiel de la billetterie de Paris 2024 pour participer au plus grand Ã©vÃ©nement sportif au monde.
+# ---
+```
+
+## Conclusion
+
+By integrating the `SerperDevTool` into Python projects, users gain the ability to conduct real-time, relevant searches across the internet directly from their applications. 
+The updated parameters allow for more customized and localized search results. By adhering to the setup and usage guidelines provided, incorporating this tool into projects is streamlined and straightforward.
+
+
+
+---
+File: /tools/spidertool.mdx
+---
+
+---
+title: Spider Scraper
+description: The `SpiderTool` is designed to extract and read the content of a specified website using Spider.
+icon: spider-web
+---
+
+# `SpiderTool`
+
+## Description
+
+[Spider](https://spider.cloud/?ref=crewai) is the [fastest](https://github.com/spider-rs/spider/blob/main/benches/BENCHMARKS.md#benchmark-results) 
+open source scraper and crawler that returns LLM-ready data. 
+It converts any website into pure HTML, markdown, metadata or text while enabling you to crawl with custom actions using AI.
+
+## Installation
+
+To use the `SpiderTool` you need to download the [Spider SDK](https://pypi.org/project/spider-client/) 
+and the `crewai[tools]` SDK too:
+
+```shell
+pip install spider-client 'crewai[tools]'
+```
+
+## Example
+
+This example shows you how you can use the `SpiderTool` to enable your agent to scrape and crawl websites. 
+The data returned from the Spider API is already LLM-ready, so no need to do any cleaning there.
+
+```python Code
+from crewai_tools import SpiderTool
+
+def main():
+    spider_tool = SpiderTool()
+
+    searcher = Agent(
+        role="Web Research Expert",
+        goal="Find related information from specific URL's",
+        backstory="An expert web researcher that uses the web extremely well",
+        tools=[spider_tool],
+        verbose=True,
+    )
+
+    return_metadata = Task(
+        description="Scrape https://spider.cloud with a limit of 1 and enable metadata",
+        expected_output="Metadata and 10 word summary of spider.cloud",
+        agent=searcher
+    )
+
+    crew = Crew(
+        agents=[searcher],
+        tasks=[
+            return_metadata,
+        ],
+        verbose=2
+    )
+
+    crew.kickoff()
+
+if __name__ == "__main__":
+    main()
+```
+
+## Arguments
+| Argument          | Type     | Description                                                                                                                                           |
+|:------------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| **api_key**         | `string`   | Specifies Spider API key. If not specified, it looks for `SPIDER_API_KEY` in environment variables.                                                   |
+| **params**          | `object`   | Optional parameters for the request. Defaults to `{"return_format": "markdown"}` to optimize content for LLMs.                                        |
+| **request**         | `string`   | Type of request to perform (`http`, `chrome`, `smart`). `smart` defaults to HTTP, switching to JavaScript rendering if needed.                        |
+| **limit**           | `int`      | Max pages to crawl per website. Set to `0` or omit for unlimited.                                                                                     |
+| **depth**           | `int`      | Max crawl depth. Set to `0` for no limit.                                                                                                             |
+| **cache**           | `bool`     | Enables HTTP caching to speed up repeated runs. Default is `true`.                                                                                    |
+| **budget**          | `object`   | Sets path-based limits for crawled pages, e.g., `{"*":1}` for root page only.                                                                          |
+| **locale**          | `string`   | Locale for the request, e.g., `en-US`.                                                                                                                |
+| **cookies**         | `string`   | HTTP cookies for the request.                                                                                                                         |
+| **stealth**         | `bool`     | Enables stealth mode for Chrome requests to avoid detection. Default is `true`.                                                                       |
+| **headers**         | `object`   | HTTP headers as a map of key-value pairs for all requests.                                                                                            |
+| **metadata**        | `bool`     | Stores metadata about pages and content, aiding AI interoperability. Defaults to `false`.                                                             |
+| **viewport**        | `object`   | Sets Chrome viewport dimensions. Default is `800x600`.                                                                                                |
+| **encoding**        | `string`   | Specifies encoding type, e.g., `UTF-8`, `SHIFT_JIS`.                                                                                                  |
+| **subdomains**      | `bool`     | Includes subdomains in the crawl. Default is `false`.                                                                                                 |
+| **user_agent**      | `string`   | Custom HTTP user agent. Defaults to a random agent.                                                                                                   |
+| **store_data**      | `bool`     | Enables data storage for the request. Overrides `storageless` when set. Default is `false`.                                                           |
+| **gpt_config**      | `object`   | Allows AI to generate crawl actions, with optional chaining steps via an array for `"prompt"`.                                                        |
+| **fingerprint**     | `bool`     | Enables advanced fingerprinting for Chrome.                                                                                                           |
+| **storageless**     | `bool`     | Prevents all data storage, including AI embeddings. Default is `false`.                                                                               |
+| **readability**     | `bool`     | Pre-processes content for reading via [Mozillaâ€™s readability](https://github.com/mozilla/readability). Improves content for LLMs.                      |
+| **return_format**   | `string`   | Format to return data: `markdown`, `raw`, `text`, `html2text`. Use `raw` for default page format.                                                     |
+| **proxy_enabled**   | `bool`     | Enables high-performance proxies to avoid network-level blocking.                                                                                     |
+| **query_selector**  | `string`   | CSS query selector for content extraction from markup.                                                                                                |
+| **full_resources**  | `bool`     | Downloads all resources linked to the website.                                                                                                        |
+| **request_timeout** | `int`      | Timeout in seconds for requests (5-60). Default is `30`.                                                                                              |
+| **run_in_background** | `bool`   | Runs the request in the background, useful for data storage and triggering dashboard crawls. No effect if `storageless` is set.                        |
+
+
+---
+File: /tools/txtsearchtool.mdx
+---
+
+---
+title: TXT RAG Search
+description: The `TXTSearchTool` is designed to perform a RAG (Retrieval-Augmented Generation) search within the content of a text file.
+icon: file-lines
+---
+
+# `TXTSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+This tool is used to perform a RAG (Retrieval-Augmented Generation) search within the content of a text file. 
+It allows for semantic searching of a query within a specified text file's content, 
+making it an invaluable resource for quickly extracting information or finding specific sections of text based on the query provided.
+
+## Installation
+
+To use the `TXTSearchTool`, you first need to install the `crewai_tools` package. 
+This can be done using pip, a package manager for Python. 
+Open your terminal or command prompt and enter the following command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+This command will download and install the TXTSearchTool along with any necessary dependencies.
+
+## Example
+
+The following example demonstrates how to use the TXTSearchTool to search within a text file. 
+This example shows both the initialization of the tool with a specific text file and the subsequent search within that file's content.
+
+```python Code
+from crewai_tools import TXTSearchTool
+
+# Initialize the tool to search within any text file's content 
+# the agent learns about during its execution
+tool = TXTSearchTool()
+
+# OR
+
+# Initialize the tool with a specific text file, 
+# so the agent can search within the given text file's content
+tool = TXTSearchTool(txt='path/to/text/file.txt')
+```
+
+## Arguments
+- `txt` (str): **Optional**. The path to the text file you want to search. 
+This argument is only required if the tool was not initialized with a specific text file; 
+otherwise, the search will be conducted within the initially provided text file.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. 
+To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = TXTSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/visiontool.mdx
+---
+
+---
+title: Vision Tool
+description: The `VisionTool` is designed to extract text from images.
+icon: eye
+---
+
+# `VisionTool`
+
+## Description
+
+This tool is used to extract text from images. When passed to the agent it will extract the text from the image and then use it to generate a response, report or any other output.
+The URL or the PATH of the image should be passed to the Agent.
+
+## Installation
+
+Install the crewai_tools package
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Usage
+
+In order to use the VisionTool, the OpenAI API key should be set in the environment variable `OPENAI_API_KEY`.
+
+```python Code
+from crewai_tools import VisionTool
+
+vision_tool = VisionTool()
+
+@agent
+def researcher(self) -> Agent:
+    '''
+    This agent uses the VisionTool to extract text from images.
+    '''
+    return Agent(
+        config=self.agents_config["researcher"],
+        allow_delegation=False,
+        tools=[vision_tool]
+    )
+```
+
+## Arguments
+
+The VisionTool requires the following arguments:
+
+| Argument           | Type     | Description                                                                      |
+| :----------------- | :------- | :------------------------------------------------------------------------------- |
+| **image_path_url** | `string` | **Mandatory**. The path to the image file from which text needs to be extracted. |
+
+
+
+---
+File: /tools/websitesearchtool.mdx
+---
+
+---
+title: Website RAG Search
+description: The `WebsiteSearchTool` is designed to perform a RAG (Retrieval-Augmented Generation) search within the content of a website.
+icon: globe-stand
+---
+
+# `WebsiteSearchTool`
+
+<Note>
+    The WebsiteSearchTool is currently in an experimental phase. We are actively working on incorporating this tool into our suite of offerings and will update the documentation accordingly.
+</Note>
+
+## Description
+
+The WebsiteSearchTool is designed as a concept for conducting semantic searches within the content of websites. 
+It aims to leverage advanced machine learning models like Retrieval-Augmented Generation (RAG) to navigate and extract information from specified URLs efficiently. 
+This tool intends to offer flexibility, allowing users to perform searches across any website or focus on specific websites of interest. 
+Please note, the current implementation details of the WebsiteSearchTool are under development, and its functionalities as described may not yet be accessible.
+
+## Installation
+
+To prepare your environment for when the WebsiteSearchTool becomes available, you can install the foundational package with:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+This command installs the necessary dependencies to ensure that once the tool is fully integrated, users can start using it immediately.
+
+## Example Usage
+
+Below are examples of how the WebsiteSearchTool could be utilized in different scenarios. Please note, these examples are illustrative and represent planned functionality:
+
+```python Code
+from crewai_tools import WebsiteSearchTool
+
+# Example of initiating tool that agents can use 
+# to search across any discovered websites
+tool = WebsiteSearchTool()
+
+# Example of limiting the search to the content of a specific website, 
+# so now agents can only search within that website
+tool = WebsiteSearchTool(website='https://example.com')
+```
+
+## Arguments
+
+- `website`: An optional argument intended to specify the website URL for focused searches. This argument is designed to enhance the tool's flexibility by allowing targeted searches when necessary.
+
+## Customization Options
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+
+```python Code
+tool = WebsiteSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/xmlsearchtool.mdx
+---
+
+---
+title: XML RAG Search
+description: The `XMLSearchTool` is designed to perform a RAG (Retrieval-Augmented Generation) search within the content of a XML file.
+icon: file-xml
+---
+
+# `XMLSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+The XMLSearchTool is a cutting-edge RAG tool engineered for conducting semantic searches within XML files. 
+Ideal for users needing to parse and extract information from XML content efficiently, this tool supports inputting a search query and an optional XML file path. 
+By specifying an XML path, users can target their search more precisely to the content of that file, thereby obtaining more relevant search outcomes.
+
+## Installation
+
+To start using the XMLSearchTool, you must first install the crewai_tools package. This can be easily done with the following command:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+Here are two examples demonstrating how to use the XMLSearchTool. 
+The first example shows searching within a specific XML file, while the second example illustrates initiating a search without predefining an XML path, providing flexibility in search scope.
+
+```python Code
+from crewai_tools import XMLSearchTool
+
+# Allow agents to search within any XML file's content 
+#as it learns about their paths during execution
+tool = XMLSearchTool()
+
+# OR
+
+# Initialize the tool with a specific XML file path 
+#for exclusive search within that document
+tool = XMLSearchTool(xml='path/to/your/xmlfile.xml')
+```
+
+## Arguments
+
+- `xml`: This is the path to the XML file you wish to search. 
+It is an optional parameter during the tool's initialization but must be provided either at initialization or as part of the `run` method's arguments to execute a search.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code  
+tool = XMLSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/youtubechannelsearchtool.mdx
+---
+
+---
+title: YouTube Channel RAG Search
+description: The `YoutubeChannelSearchTool` is designed to perform a RAG (Retrieval-Augmented Generation) search within the content of a Youtube channel.
+icon: youtube
+---
+
+# `YoutubeChannelSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+This tool is designed to perform semantic searches within a specific Youtube channel's content. 
+Leveraging the RAG (Retrieval-Augmented Generation) methodology, it provides relevant search results, 
+making it invaluable for extracting information or finding specific content without the need to manually sift through videos. 
+It streamlines the search process within Youtube channels, catering to researchers, content creators, and viewers seeking specific information or topics.
+
+## Installation
+
+To utilize the YoutubeChannelSearchTool, the `crewai_tools` package must be installed. Execute the following command in your shell to install:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+To begin using the YoutubeChannelSearchTool, follow the example below. 
+This demonstrates initializing the tool with a specific Youtube channel handle and conducting a search within that channel's content.
+
+```python Code
+from crewai_tools import YoutubeChannelSearchTool
+
+# Initialize the tool to search within any Youtube channel's content the agent learns about during its execution
+tool = YoutubeChannelSearchTool()
+
+# OR
+
+# Initialize the tool with a specific Youtube channel handle to target your search
+tool = YoutubeChannelSearchTool(youtube_channel_handle='@exampleChannel')
+```
+
+## Arguments
+
+- `youtube_channel_handle` : A mandatory string representing the Youtube channel handle. This parameter is crucial for initializing the tool to specify the channel you want to search within. The tool is designed to only search within the content of the provided channel handle.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code
+tool = YoutubeChannelSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /tools/youtubevideosearchtool.mdx
+---
+
+---
+title: YouTube Video RAG Search
+description: The `YoutubeVideoSearchTool` is designed to perform a RAG (Retrieval-Augmented Generation) search within the content of a Youtube video.
+icon: youtube
+---
+
+# `YoutubeVideoSearchTool`
+
+<Note>
+    We are still working on improving tools, so there might be unexpected behavior or changes in the future.
+</Note>
+
+## Description
+
+This tool is part of the `crewai_tools` package and is designed to perform semantic searches within Youtube video content, utilizing Retrieval-Augmented Generation (RAG) techniques. 
+It is one of several "Search" tools in the package that leverage RAG for different sources. 
+The YoutubeVideoSearchTool allows for flexibility in searches; users can search across any Youtube video content without specifying a video URL, 
+or they can target their search to a specific Youtube video by providing its URL.
+
+## Installation
+
+To utilize the `YoutubeVideoSearchTool`, you must first install the `crewai_tools` package. 
+This package contains the `YoutubeVideoSearchTool` among other utilities designed to enhance your data analysis and processing tasks. 
+Install the package by executing the following command in your terminal:
+
+```shell
+pip install 'crewai[tools]'
+```
+
+## Example
+
+To integrate the YoutubeVideoSearchTool into your Python projects, follow the example below. 
+This demonstrates how to use the tool both for general Youtube content searches and for targeted searches within a specific video's content.
+
+```python Code
+from crewai_tools import YoutubeVideoSearchTool
+
+# General search across Youtube content without specifying a video URL, 
+# so the agent can search within any Youtube video content 
+# it learns about its url during its operation
+tool = YoutubeVideoSearchTool()
+
+# Targeted search within a specific Youtube video's content
+tool = YoutubeVideoSearchTool(
+    youtube_video_url='https://youtube.com/watch?v=example'
+)
+```
+
+## Arguments
+
+The YoutubeVideoSearchTool accepts the following initialization arguments:
+
+- `youtube_video_url`: An optional argument at initialization but required if targeting a specific Youtube video. It specifies the Youtube video URL path you want to search within.
+
+## Custom model and embeddings
+
+By default, the tool uses OpenAI for both embeddings and summarization. To customize the model, you can use a config dictionary as follows:
+
+```python Code  
+tool = YoutubeVideoSearchTool(
+    config=dict(
+        llm=dict(
+            provider="ollama", # or google, openai, anthropic, llama2, ...
+            config=dict(
+                model="llama2",
+                # temperature=0.5,
+                # top_p=1,
+                # stream=true,
+            ),
+        ),
+        embedder=dict(
+            provider="google", # or openai, ollama, ...
+            config=dict(
+                model="models/embedding-001",
+                task_type="retrieval_document",
+                # title="Embeddings",
+            ),
+        ),
+    )
+)
+```
+
+
+---
+File: /installation.mdx
+---
+
+---
+title: Installation
+description: Get started with CrewAI - Install, configure, and build your first AI crew
+icon: wrench
+---
+
+<Note>
+  **Python Version Requirements**
+  
+  CrewAI requires `Python >=3.10 and <3.13`. Here's how to check your version:
+  ```bash
+  python3 --version
+  ```
+  
+  If you need to update Python, visit [python.org/downloads](https://python.org/downloads)
+</Note>
+
+# Setting Up Your Environment
+
+Before installing CrewAI, it's recommended to set up a virtual environment. This helps isolate your project dependencies and avoid conflicts.
+
+<Steps>
+    <Step title="Create a Virtual Environment">
+        Choose your preferred method to create a virtual environment:
+
+        **Using venv (Python's built-in tool):**
+        ```shell Terminal
+        python3 -m venv .venv
+        ```
+
+        **Using conda:**
+        ```shell Terminal
+        conda create -n crewai-env python=3.12
+        ```
+    </Step>
+
+    <Step title="Activate the Virtual Environment">
+        Activate your virtual environment based on your platform:
+
+        **On macOS/Linux (venv):**
+        ```shell Terminal
+        source .venv/bin/activate
+        ```
+
+        **On Windows (venv):**
+        ```shell Terminal
+        .venv\Scripts\activate
+        ```
+
+        **Using conda (all platforms):**
+        ```shell Terminal
+        conda activate crewai-env
+        ```
+    </Step>
+</Steps>
+
+# Installing CrewAI
+
+Now let's get you set up! ðŸš€
+
+<Steps>
+    <Step title="Install CrewAI">
+        Install CrewAI with all recommended tools using either method:
+        ```shell Terminal
+        pip install 'crewai[tools]'
+        ```
+        or
+        ```shell Terminal
+        pip install crewai crewai-tools
+        ```
+
+        <Note>
+          Both methods install the core package and additional tools needed for most use cases.
+        </Note>
+    </Step>
+
+    <Step title="Upgrade CrewAI (Existing Installations Only)">
+        If you have an older version of CrewAI installed, you can upgrade it:
+        ```shell Terminal
+        pip install --upgrade crewai crewai-tools
+        ```
+
+        <Warning>
+            If you see a Poetry-related warning, you'll need to migrate to our new dependency manager:
+            ```shell Terminal
+            crewai update
+            ```
+            This will update your project to use [UV](https://github.com/astral-sh/uv), our new faster dependency manager.
+        </Warning>
+
+        <Note>
+            Skip this step if you're doing a fresh installation.
+        </Note>
+    </Step>
+
+    <Step title="Verify Installation">
+        Check your installed versions:
+        ```shell Terminal
+        pip freeze | grep crewai
+        ```
+
+        You should see something like:
+        ```markdown Output
+        crewai==X.X.X
+        crewai-tools==X.X.X
+        ```
+        <Check>Installation successful! You're ready to create your first crew.</Check>
+    </Step>
+</Steps>
+
+# Creating a New Project
+
+<Tip>
+  We recommend using the YAML Template scaffolding for a structured approach to defining agents and tasks.
+</Tip>
+
+<Steps>
+  <Step title="Generate Project Structure">
+    Run the CrewAI CLI command:
+    ```shell Terminal
+    crewai create crew <project_name>
+    ```
+
+    This creates a new project with the following structure:
+    <Frame>
+    ```
+    my_project/
+    â”œâ”€â”€ .gitignore
+    â”œâ”€â”€ pyproject.toml
+    â”œâ”€â”€ README.md
+    â”œâ”€â”€ .env
+    â””â”€â”€ src/
+        â””â”€â”€ my_project/
+            â”œâ”€â”€ __init__.py
+            â”œâ”€â”€ main.py
+            â”œâ”€â”€ crew.py
+            â”œâ”€â”€ tools/
+            â”‚   â”œâ”€â”€ custom_tool.py
+            â”‚   â””â”€â”€ __init__.py
+            â””â”€â”€ config/
+                â”œâ”€â”€ agents.yaml
+                â””â”€â”€ tasks.yaml
+    ```
+    </Frame>
+  </Step>
+
+  <Step title="Install Additional Tools">
+    You can install additional tools using UV:
+    ```shell Terminal
+    uv add <tool-name>
+    ```
+
+    <Tip>
+      UV is our preferred package manager as it's significantly faster than pip and provides better dependency resolution.
+    </Tip>
+  </Step>
+
+  <Step title="Customize Your Project">
+    Your project will contain these essential files:
+
+    | File | Purpose |
+    | --- | --- |
+    | `agents.yaml` | Define your AI agents and their roles |
+    | `tasks.yaml` | Set up agent tasks and workflows |
+    | `.env` | Store API keys and environment variables |
+    | `main.py` | Project entry point and execution flow |
+    | `crew.py` | Crew orchestration and coordination |
+    | `tools/` | Directory for custom agent tools |
+
+    <Tip>
+      Start by editing `agents.yaml` and `tasks.yaml` to define your crew's behavior.
+      Keep sensitive information like API keys in `.env`.
+    </Tip>
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Build Your First Agent"
+    icon="code"
+    href="/quickstart"
+  >
+    Follow our quickstart guide to create your first CrewAI agent and get hands-on experience.
+  </Card>
+  <Card
+    title="Join the Community"
+    icon="comments"
+    href="https://community.crewai.com"
+  >
+    Connect with other developers, get help, and share your CrewAI experiences.
+  </Card>
+</CardGroup>
+
+
+
+---
+File: /introduction.mdx
+---
+
+---
+title: Introduction
+description: Build AI agent teams that work together to tackle complex tasks
+icon: handshake
+---
+
+# What is CrewAI?
+
+**CrewAI is a cutting-edge framework for orchestrating autonomous AI agents.** 
+
+CrewAI enables you to create AI teams where each agent has specific roles, tools, and goals, working together to accomplish complex tasks.
+
+Think of it as assembling your dream team - each member (agent) brings unique skills and expertise, collaborating seamlessly to achieve your objectives.
+
+## How CrewAI Works
+
+<Note>
+  Just like a company has departments (Sales, Engineering, Marketing) working together under leadership to achieve business goals, CrewAI helps you create an organization of AI agents with specialized roles collaborating to accomplish complex tasks.
+</Note>
+
+<Frame caption="CrewAI Framework Overview">
+  <img src="crewAI-mindmap.png" alt="CrewAI Framework Overview" />
+</Frame>
+
+| Component | Description | Key Features |
+|:----------|:-----------:|:------------|
+| **Crew** | The top-level organization | â€¢ Manages AI agent teams<br/>â€¢ Oversees workflows<br/>â€¢ Ensures collaboration<br/>â€¢ Delivers outcomes |
+| **AI Agents** | Specialized team members | â€¢ Have specific roles (researcher, writer)<br/>â€¢ Use designated tools<br/>â€¢ Can delegate tasks<br/>â€¢ Make autonomous decisions |
+| **Process** | Workflow management system | â€¢ Defines collaboration patterns<br/>â€¢ Controls task assignments<br/>â€¢ Manages interactions<br/>â€¢ Ensures efficient execution |
+| **Tasks** | Individual assignments | â€¢ Have clear objectives<br/>â€¢ Use specific tools<br/>â€¢ Feed into larger process<br/>â€¢ Produce actionable results |
+
+### How It All Works Together
+
+1. The **Crew** organizes the overall operation
+2. **AI Agents** work on their specialized tasks
+3. The **Process** ensures smooth collaboration
+4. **Tasks** get completed to achieve the goal
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Role-Based Agents" icon="users">
+    Create specialized agents with defined roles, expertise, and goals - from researchers to analysts to writers
+  </Card>
+  <Card title="Flexible Tools" icon="screwdriver-wrench">
+    Equip agents with custom tools and APIs to interact with external services and data sources
+  </Card>
+  <Card title="Intelligent Collaboration" icon="people-arrows">
+    Agents work together, sharing insights and coordinating tasks to achieve complex objectives
+  </Card>
+  <Card title="Task Management" icon="list-check">
+    Define sequential or parallel workflows, with agents automatically handling task dependencies
+  </Card>
+</CardGroup>
+
+## Why Choose CrewAI?
+
+- ðŸ§  **Autonomous Operation**: Agents make intelligent decisions based on their roles and available tools
+- ðŸ“ **Natural Interaction**: Agents communicate and collaborate like human team members
+- ðŸ› ï¸ **Extensible Design**: Easy to add new tools, roles, and capabilities
+- ðŸš€ **Production Ready**: Built for reliability and scalability in real-world applications
+
+<CardGroup cols={3}>
+  <Card
+    title="Install CrewAI"
+    icon="wrench"
+    href="/installation"
+  >
+    Get started with CrewAI in your development environment.
+  </Card>
+  <Card
+    title="Quick Start"
+    icon="bolt"
+    href="/quickstart"
+  >
+    Follow our quickstart guide to create your first CrewAI agent and get hands-on experience.
+  </Card>
+  <Card
+    title="Join the Community"
+    icon="comments"
+    href="https://community.crewai.com"
+  >
+    Connect with other developers, get help, and share your CrewAI experiences.
+  </Card>
+</CardGroup>
+
+
+---
+File: /mint.json
+---
+
+{
+  "name": "CrewAI",
+  "theme": "venus",
+  "logo": {
+    "dark": "crew_only_logo.png",
+    "light": "crew_only_logo.png"
+  },
+  "favicon": "favicon.svg",
+  "colors": {
+    "primary": "#EB6658",
+    "light": "#F3A78B",
+    "dark": "#C94C3C",
+    "anchors": {
+      "from": "#737373",
+      "to": "#EB6658"
+    }
+  },
+  "seo": {
+    "indexHiddenPages": false
+  },
+  "modeToggle": {
+    "default": "dark",
+    "isHidden": false
+  },
+  "feedback": {
+    "suggestEdit": true,
+    "raiseIssue": true,
+    "thumbsRating": true
+  },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/crewAIInc/crewAI"
+  },
+  "primaryTab": {
+    "name": "Get Started"
+  },
+  "tabs": [
+    {
+      "name": "Examples",
+      "url": "examples"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Community",
+      "icon": "discourse",
+      "url": "https://community.crewai.com"
+    },
+    {
+      "name": "Changelog",
+      "icon": "timeline",
+      "url": "https://github.com/crewAIInc/crewAI/releases"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "installation",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "concepts/agents",
+        "concepts/tasks",
+        "concepts/crews",
+        "concepts/flows",
+        "concepts/knowledge",
+        "concepts/llms",
+        "concepts/processes",
+        "concepts/collaboration",
+        "concepts/training",
+        "concepts/memory",
+        "concepts/planning",
+        "concepts/testing",
+        "concepts/cli",
+        "concepts/tools",
+        "concepts/langchain-tools",
+        "concepts/llamaindex-tools"
+      ]
+    },
+    {
+      "group": "How to Guides",
+      "pages": [
+        "how-to/create-custom-tools",
+        "how-to/sequential-process",
+        "how-to/hierarchical-process",
+        "how-to/custom-manager-agent",
+        "how-to/llm-connections",
+        "how-to/customizing-agents",
+        "how-to/multimodal-agents",
+        "how-to/coding-agents",
+        "how-to/force-tool-output-as-result",
+        "how-to/human-input-on-execution",
+        "how-to/kickoff-async",
+        "how-to/kickoff-for-each",
+        "how-to/replay-tasks-from-latest-crew-kickoff",
+        "how-to/conditional-tasks",
+        "how-to/agentops-observability",
+        "how-to/langtrace-observability",
+        "how-to/mlflow-observability",
+        "how-to/openlit-observability",
+        "how-to/portkey-observability",
+        "how-to/langfuse-observability"
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        "examples/example"
+      ]
+    },
+    {
+      "group": "Tools",
+      "pages": [
+        "tools/browserbaseloadtool",
+        "tools/codedocssearchtool",
+        "tools/codeinterpretertool",
+        "tools/composiotool",
+        "tools/csvsearchtool",
+        "tools/dalletool",
+        "tools/directorysearchtool",
+        "tools/directoryreadtool",
+        "tools/docxsearchtool",
+        "tools/exasearchtool",
+        "tools/filereadtool",
+        "tools/filewritetool",
+        "tools/firecrawlcrawlwebsitetool",
+        "tools/firecrawlscrapewebsitetool",
+        "tools/firecrawlsearchtool",
+        "tools/githubsearchtool",
+        "tools/serperdevtool",
+        "tools/jsonsearchtool",
+        "tools/mdxsearchtool",
+        "tools/mysqltool",
+        "tools/nl2sqltool",
+        "tools/pdfsearchtool",
+        "tools/pgsearchtool",
+        "tools/scrapewebsitetool",
+        "tools/seleniumscrapingtool",
+        "tools/spidertool",
+        "tools/txtsearchtool",
+        "tools/visiontool",
+        "tools/websitesearchtool",
+        "tools/xmlsearchtool",
+        "tools/youtubechannelsearchtool",
+        "tools/youtubevideosearchtool"
+      ]
+    },
+    {
+      "group": "Telemetry",
+      "pages": [
+        "telemetry"
+      ]
+    }
+  ],
+  "search": {
+    "prompt": "Search CrewAI docs"
+  },
+  "footerSocials": {
+    "website": "https://crewai.com",
+    "x": "https://x.com/crewAIInc",
+    "github": "https://github.com/crewAIInc/crewAI",
+    "linkedin": "https://www.linkedin.com/company/crewai-inc",
+    "youtube": "https://youtube.com/@crewAIInc"
+  }
+}
+
+
+---
+File: /quickstart.mdx
+---
+
+---
+title: Quickstart
+description: Build your first AI agent with CrewAI in under 5 minutes.
+icon: rocket
+---
+
+## Build your first CrewAI Agent
+
+Let's create a simple crew that will help us `research` and `report` on the `latest AI developments` for a given topic or subject.
+
+Before we proceed, make sure you have `crewai` and `crewai-tools` installed.
+If you haven't installed them yet, you can do so by following the [installation guide](/installation).
+
+Follow the steps below to get crewing! ðŸš£â€â™‚ï¸
+
+<Steps>
+  <Step title="Create your crew">
+  Create a new crew project by running the following command in your terminal.
+  This will create a new directory called `latest-ai-development` with the basic structure for your crew.
+    <CodeGroup>
+      ```shell Terminal
+      crewai create crew latest-ai-development
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="Modify your `agents.yaml` file">
+  <Tip>
+  You can also modify the agents as needed to fit your use case or copy and paste as is to your project.
+  Any variable interpolated in your `agents.yaml` and `tasks.yaml` files like `{topic}` will be replaced by the value of the variable in the `main.py` file.
+  </Tip>
+    ```yaml agents.yaml
+    # src/latest_ai_development/config/agents.yaml
+    researcher:
+      role: >
+        {topic} Senior Data Researcher
+      goal: >
+        Uncover cutting-edge developments in {topic}
+      backstory: >
+        You're a seasoned researcher with a knack for uncovering the latest
+        developments in {topic}. Known for your ability to find the most relevant
+        information and present it in a clear and concise manner.
+
+    reporting_analyst:
+      role: >
+        {topic} Reporting Analyst
+      goal: >
+        Create detailed reports based on {topic} data analysis and research findings
+      backstory: >
+        You're a meticulous analyst with a keen eye for detail. You're known for
+        your ability to turn complex data into clear and concise reports, making
+        it easy for others to understand and act on the information you provide.
+    ```
+  </Step>
+  <Step title="Modify your `tasks.yaml` file">
+    ```yaml tasks.yaml
+    # src/latest_ai_development/config/tasks.yaml
+    research_task:
+      description: >
+        Conduct a thorough research about {topic}
+        Make sure you find any interesting and relevant information given
+        the current year is 2025.
+      expected_output: >
+        A list with 10 bullet points of the most relevant information about {topic}
+      agent: researcher
+
+    reporting_task:
+      description: >
+        Review the context you got and expand each topic into a full section for a report.
+        Make sure the report is detailed and contains any and all relevant information.
+      expected_output: >
+        A fully fledge reports with the mains topics, each with a full section of information.
+        Formatted as markdown without '```'
+      agent: reporting_analyst
+      output_file: report.md
+    ```
+  </Step>
+  <Step title="Modify your `crew.py` file">
+    ```python crew.py
+    # src/latest_ai_development/crew.py
+    from crewai import Agent, Crew, Process, Task
+    from crewai.project import CrewBase, agent, crew, task
+    from crewai_tools import SerperDevTool
+
+    @CrewBase
+    class LatestAiDevelopmentCrew():
+      """LatestAiDevelopment crew"""
+
+      @agent
+      def researcher(self) -> Agent:
+        return Agent(
+          config=self.agents_config['researcher'],
+          verbose=True,
+          tools=[SerperDevTool()]
+        )
+
+      @agent
+      def reporting_analyst(self) -> Agent:
+        return Agent(
+          config=self.agents_config['reporting_analyst'],
+          verbose=True
+        )
+
+      @task
+      def research_task(self) -> Task:
+        return Task(
+          config=self.tasks_config['research_task'],
+        )
+
+      @task
+      def reporting_task(self) -> Task:
+        return Task(
+          config=self.tasks_config['reporting_task'],
+          output_file='output/report.md' # This is the file that will be contain the final report.
+        )
+
+      @crew
+      def crew(self) -> Crew:
+        """Creates the LatestAiDevelopment crew"""
+        return Crew(
+          agents=self.agents, # Automatically created by the @agent decorator
+          tasks=self.tasks, # Automatically created by the @task decorator
+          process=Process.sequential,
+          verbose=True,
+        )
+    ```
+  </Step>
+  <Step title="[Optional] Add before and after crew functions">
+    ```python crew.py
+    # src/latest_ai_development/crew.py
+    from crewai import Agent, Crew, Process, Task
+    from crewai.project import CrewBase, agent, crew, task, before_kickoff, after_kickoff
+    from crewai_tools import SerperDevTool
+
+    @CrewBase
+    class LatestAiDevelopmentCrew():
+      """LatestAiDevelopment crew"""
+
+      @before_kickoff
+      def before_kickoff_function(self, inputs):
+        print(f"Before kickoff function with inputs: {inputs}")
+        return inputs # You can return the inputs or modify them as needed
+
+      @after_kickoff
+      def after_kickoff_function(self, result):
+        print(f"After kickoff function with result: {result}")
+        return result # You can return the result or modify it as needed
+
+      # ... remaining code
+    ```
+  </Step>
+  <Step title="Feel free to pass custom inputs to your crew">
+  For example, you can pass the `topic` input to your crew to customize the research and reporting.
+    ```python main.py
+    #!/usr/bin/env python
+    # src/latest_ai_development/main.py
+    import sys
+    from latest_ai_development.crew import LatestAiDevelopmentCrew
+
+    def run():
+      """
+      Run the crew.
+      """
+      inputs = {
+        'topic': 'AI Agents'
+      }
+      LatestAiDevelopmentCrew().crew().kickoff(inputs=inputs)
+    ```
+  </Step>
+  <Step title="Set your environment variables">
+  Before running your crew, make sure you have the following keys set as environment variables in your `.env` file:
+    - An [OpenAI API key](https://platform.openai.com/account/api-keys) (or other LLM API key): `OPENAI_API_KEY=sk-...`
+    - A [Serper.dev](https://serper.dev/) API key: `SERPER_API_KEY=YOUR_KEY_HERE`
+  </Step>
+  <Step title="Lock and install the dependencies">
+    Lock the dependencies and install them by using the CLI command but first, navigate to your project directory:
+    <CodeGroup>
+      ```shell Terminal
+      cd latest-ai-development
+      crewai install
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="Run your crew">
+  To run your crew, execute the following command in the root of your project:
+    <CodeGroup>
+      ```bash Terminal
+      crewai run
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="View your final report">
+  You should see the output in the console and the `report.md` file should be created in the root of your project with the final report.
+
+  Here's an example of what the report should look like:
+
+  <CodeGroup>
+    ```markdown output/report.md
+    # Comprehensive Report on the Rise and Impact of AI Agents in 2025
+
+    ## 1. Introduction to AI Agents
+    In 2025, Artificial Intelligence (AI) agents are at the forefront of innovation across various industries. As intelligent systems that can perform tasks typically requiring human cognition, AI agents are paving the way for significant advancements in operational efficiency, decision-making, and overall productivity within sectors like Human Resources (HR) and Finance. This report aims to detail the rise of AI agents, their frameworks, applications, and potential implications on the workforce.
+
+    ## 2. Benefits of AI Agents
+    AI agents bring numerous advantages that are transforming traditional work environments. Key benefits include:
+
+    - **Task Automation**: AI agents can carry out repetitive tasks such as data entry, scheduling, and payroll processing without human intervention, greatly reducing the time and resources spent on these activities.
+    - **Improved Efficiency**: By quickly processing large datasets and performing analyses that would take humans significantly longer, AI agents enhance operational efficiency. This allows teams to focus on strategic tasks that require higher-level thinking.
+    - **Enhanced Decision-Making**: AI agents can analyze trends and patterns in data, provide insights, and even suggest actions, helping stakeholders make informed decisions based on factual data rather than intuition alone.
+
+    ## 3. Popular AI Agent Frameworks
+    Several frameworks have emerged to facilitate the development of AI agents, each with its own unique features and capabilities. Some of the most popular frameworks include:
+
+    - **Autogen**: A framework designed to streamline the development of AI agents through automation of code generation.
+    - **Semantic Kernel**: Focuses on natural language processing and understanding, enabling agents to comprehend user intentions better.
+    - **Promptflow**: Provides tools for developers to create conversational agents that can navigate complex interactions seamlessly.
+    - **Langchain**: Specializes in leveraging various APIs to ensure agents can access and utilize external data effectively.
+    - **CrewAI**: Aimed at collaborative environments, CrewAI strengthens teamwork by facilitating communication through AI-driven insights.
+    - **MemGPT**: Combines memory-optimized architectures with generative capabilities, allowing for more personalized interactions with users.
+
+    These frameworks empower developers to build versatile and intelligent agents that can engage users, perform advanced analytics, and execute various tasks aligned with organizational goals.
+
+    ## 4. AI Agents in Human Resources
+    AI agents are revolutionizing HR practices by automating and optimizing key functions:
+
+    - **Recruiting**: AI agents can screen resumes, schedule interviews, and even conduct initial assessments, thus accelerating the hiring process while minimizing biases.
+    - **Succession Planning**: AI systems analyze employee performance data and potential, helping organizations identify future leaders and plan appropriate training.
+    - **Employee Engagement**: Chatbots powered by AI can facilitate feedback loops between employees and management, promoting an open culture and addressing concerns promptly.
+
+    As AI continues to evolve, HR departments leveraging these agents can realize substantial improvements in both efficiency and employee satisfaction.
+
+    ## 5. AI Agents in Finance
+    The finance sector is seeing extensive integration of AI agents that enhance financial practices:
+
+    - **Expense Tracking**: Automated systems manage and monitor expenses, flagging anomalies and offering recommendations based on spending patterns.
+    - **Risk Assessment**: AI models assess credit risk and uncover potential fraud by analyzing transaction data and behavioral patterns.
+    - **Investment Decisions**: AI agents provide stock predictions and analytics based on historical data and current market conditions, empowering investors with informative insights.
+
+    The incorporation of AI agents into finance is fostering a more responsive and risk-aware financial landscape.
+
+    ## 6. Market Trends and Investments
+    The growth of AI agents has attracted significant investment, especially amidst the rising popularity of chatbots and generative AI technologies. Companies and entrepreneurs are eager to explore the potential of these systems, recognizing their ability to streamline operations and improve customer engagement.
+
+    Conversely, corporations like Microsoft are taking strides to integrate AI agents into their product offerings, with enhancements to their Copilot 365 applications. This strategic move emphasizes the importance of AI literacy in the modern workplace and indicates the stabilizing of AI agents as essential business tools.
+
+    ## 7. Future Predictions and Implications
+    Experts predict that AI agents will transform essential aspects of work life. As we look toward the future, several anticipated changes include:
+
+    - Enhanced integration of AI agents across all business functions, creating interconnected systems that leverage data from various departmental silos for comprehensive decision-making.
+    - Continued advancement of AI technologies, resulting in smarter, more adaptable agents capable of learning and evolving from user interactions.
+    - Increased regulatory scrutiny to ensure ethical use, especially concerning data privacy and employee surveillance as AI agents become more prevalent.
+
+    To stay competitive and harness the full potential of AI agents, organizations must remain vigilant about latest developments in AI technology and consider continuous learning and adaptation in their strategic planning.
+
+    ## 8. Conclusion
+    The emergence of AI agents is undeniably reshaping the workplace landscape in 5. With their ability to automate tasks, enhance efficiency, and improve decision-making, AI agents are critical in driving operational success. Organizations must embrace and adapt to AI developments to thrive in an increasingly digital business environment.
+    ```
+  </CodeGroup>
+  </Step>
+</Steps>
+
+### Note on Consistency in Naming
+
+The names you use in your YAML files (`agents.yaml` and `tasks.yaml`) should match the method names in your Python code.
+For example, you can reference the agent for specific tasks from `tasks.yaml` file.
+This naming consistency allows CrewAI to automatically link your configurations with your code; otherwise, your task won't recognize the reference properly.
+
+#### Example References
+
+<Tip>
+  Note how we use the same name for the agent in the `agents.yaml` (`email_summarizer`) file as the method name in the `crew.py` (`email_summarizer`) file.
+</Tip>
+
+```yaml agents.yaml
+email_summarizer:
+    role: >
+      Email Summarizer
+    goal: >
+      Summarize emails into a concise and clear summary
+    backstory: >
+      You will create a 5 bullet point summary of the report
+    llm: openai/gpt-4o
+```
+
+<Tip>
+  Note how we use the same name for the agent in the `tasks.yaml` (`email_summarizer_task`) file as the method name in the `crew.py` (`email_summarizer_task`) file.
+</Tip>
+
+```yaml tasks.yaml
+email_summarizer_task:
+    description: >
+      Summarize the email into a 5 bullet point summary
+    expected_output: >
+      A 5 bullet point summary of the email
+    agent: email_summarizer
+    context:
+      - reporting_task
+      - research_task
+```
+
+Use the annotations to properly reference the agent and task in the `crew.py` file.
+
+### Annotations include:
+
+Here are examples of how to use each annotation in your CrewAI project, and when you should use them:
+
+#### @agent
+Used to define an agent in your crew. Use this when:
+- You need to create a specialized AI agent with a specific role
+- You want the agent to be automatically collected and managed by the crew
+- You need to reuse the same agent configuration across multiple tasks
+
+```python
+@agent
+def research_agent(self) -> Agent:
+    return Agent(
+        role="Research Analyst",
+        goal="Conduct thorough research on given topics",
+        backstory="Expert researcher with years of experience in data analysis",
+        tools=[SerperDevTool()],
+        verbose=True
+    )
+```
+
+#### @task
+Used to define a task that can be executed by agents. Use this when:
+- You need to define a specific piece of work for an agent
+- You want tasks to be automatically sequenced and managed
+- You need to establish dependencies between different tasks
+
+```python
+@task
+def research_task(self) -> Task:
+    return Task(
+        description="Research the latest developments in AI technology",
+        expected_output="A comprehensive report on AI advancements",
+        agent=self.research_agent(),
+        output_file="output/research.md"
+    )
+```
+
+#### @crew
+Used to define your crew configuration. Use this when:
+- You want to automatically collect all @agent and @task definitions
+- You need to specify how tasks should be processed (sequential or hierarchical)
+- You want to set up crew-wide configurations
+
+```python
+@crew
+def research_crew(self) -> Crew:
+    return Crew(
+        agents=self.agents,  # Automatically collected from @agent methods
+        tasks=self.tasks,    # Automatically collected from @task methods
+        process=Process.sequential,
+        verbose=True
+    )
+```
+
+#### @tool
+Used to create custom tools for your agents. Use this when:
+- You need to give agents specific capabilities (like web search, data analysis)
+- You want to encapsulate external API calls or complex operations
+- You need to share functionality across multiple agents
+
+```python
+@tool
+def web_search_tool(query: str, max_results: int = 5) -> list[str]:
+    """
+    Search the web for information.
+
+    Args:
+        query: The search query
+        max_results: Maximum number of results to return
+
+    Returns:
+        List of search results
+    """
+    # Implement your search logic here
+    return [f"Result {i} for: {query}" for i in range(max_results)]
+```
+
+#### @before_kickoff
+Used to execute logic before the crew starts. Use this when:
+- You need to validate or preprocess input data
+- You want to set up resources or configurations before execution
+- You need to perform any initialization logic
+
+```python
+@before_kickoff
+def validate_inputs(self, inputs: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Validate and preprocess inputs before the crew starts."""
+    if inputs is None:
+        return None
+        
+    if 'topic' not in inputs:
+        raise ValueError("Topic is required")
+    
+    # Add additional context
+    inputs['timestamp'] = datetime.now().isoformat()
+    inputs['topic'] = inputs['topic'].strip().lower()
+    return inputs
+```
+
+#### @after_kickoff
+Used to process results after the crew completes. Use this when:
+- You need to format or transform the final output
+- You want to perform cleanup operations
+- You need to save or log the results in a specific way
+
+```python
+@after_kickoff
+def process_results(self, result: CrewOutput) -> CrewOutput:
+    """Process and format the results after the crew completes."""
+    result.raw = result.raw.strip()
+    result.raw = f"""
+    # Research Results
+    Generated on: {datetime.now().isoformat()}
+    
+    {result.raw}
+    """
+    return result
+```
+
+#### @callback
+Used to handle events during crew execution. Use this when:
+- You need to monitor task progress
+- You want to log intermediate results
+- You need to implement custom progress tracking or metrics
+
+```python
+@callback
+def log_task_completion(self, task: Task, output: str):
+    """Log task completion details for monitoring."""
+    print(f"Task '{task.description}' completed")
+    print(f"Output length: {len(output)} characters")
+    print(f"Agent used: {task.agent.role}")
+    print("-" * 50)
+```
+
+#### @cache_handler
+Used to implement custom caching for task results. Use this when:
+- You want to avoid redundant expensive operations
+- You need to implement custom cache storage or expiration logic
+- You want to persist results between runs
+
+```python
+@cache_handler
+def custom_cache(self, key: str) -> Optional[str]:
+    """Custom cache implementation for storing task results."""
+    cache_file = f"cache/{key}.json"
+    
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r') as f:
+            data = json.load(f)
+            # Check if cache is still valid (e.g., not expired)
+            if datetime.fromisoformat(data['timestamp']) > datetime.now() - timedelta(days=1):
+                return data['result']
+    return None
+```
+
+<Note>
+These decorators are part of the CrewAI framework and help organize your crew's structure by automatically collecting agents, tasks, and handling various lifecycle events. 
+They should be used within a class decorated with `@CrewBase`.
+</Note>
+
+### Replay Tasks from Latest Crew Kickoff
+
+CrewAI now includes a replay feature that allows you to list the tasks from the last run and replay from a specific one. To use this feature, run.
+
+```shell
+crewai replay <task_id>
+```
+
+Replace `<task_id>` with the ID of the task you want to replay.
+
+### Reset Crew Memory
+
+If you need to reset the memory of your crew before running it again, you can do so by calling the reset memory feature:
+
+```shell
+crewai reset-memories --all
+```
+
+This will clear the crew's memory, allowing for a fresh start.
+
+## Deploying Your Project
+
+The easiest way to deploy your crew is through CrewAI Enterprise, where you can deploy your crew in a few clicks.
+
+<CardGroup cols={2}>
+  <Card
+    title="Deploy on Enterprise"
+    icon="rocket"
+    href="http://app.crewai.com"
+  >
+    Get started with CrewAI Enterprise and deploy your crew in a production environment with just a few clicks.
+  </Card>
+  <Card
+    title="Join the Community"
+    icon="comments"
+    href="https://community.crewai.com"
+  >
+    Join our open source community to discuss ideas, share your projects, and connect with other CrewAI developers.
+  </Card>
+</CardGroup>
+
+
+
+---
+File: /telemetry.mdx
+---
+
+---
+title: Telemetry
+description: Understanding the telemetry data collected by CrewAI and how it contributes to the enhancement of the library.
+icon: signal-stream
+---
+
+## Telemetry
+
+<Note>
+    By default, we collect no data that would be considered personal information under GDPR and other privacy regulations.
+    We do collect Tool's names and Agent's roles, so be advised not to include any personal information in the tool's names or the Agent's roles.
+	Because no personal information is collected, it's not necessary to worry about data residency.
+	When `share_crew` is enabled, additional data is collected which may contain personal information if included by the user. 
+    Users should exercise caution when enabling this feature to ensure compliance with privacy regulations.
+</Note>
+
+CrewAI utilizes anonymous telemetry to gather usage statistics with the primary goal of enhancing the library. 
+Our focus is on improving and developing the features, integrations, and tools most utilized by our users.
+
+It's pivotal to understand that by default, **NO personal data is collected** concerning prompts, task descriptions, agents' backstories or goals, 
+usage of tools, API calls, responses, any data processed by the agents, or secrets and environment variables.
+When the `share_crew` feature is enabled, detailed data including task descriptions, agents' backstories or goals, and other specific attributes are collected 
+to provide deeper insights. This expanded data collection may include personal information if users have incorporated it into their crews or tasks. 
+Users should carefully consider the content of their crews and tasks before enabling `share_crew`. 
+Users can disable telemetry by setting the environment variable `OTEL_SDK_DISABLED` to `true`.
+
+### Data Explanation:
+| Defaulted | Data                                      | Reason and Specifics                                                                                                       |
+|-----------|-------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| Yes       | CrewAI and Python Version                 | Tracks software versions. Example: CrewAI v1.2.3, Python 3.8.10. No personal data. |
+| Yes       | Crew Metadata | Includes: randomly generated key and ID, process type (e.g., 'sequential', 'parallel'), boolean flag for memory usage (true/false), count of tasks, count of agents. All non-personal. |
+| Yes       | Agent Data | Includes: randomly generated key and ID, role name (should not include personal info), boolean settings (verbose, delegation enabled, code execution allowed), max iterations, max RPM, max retry limit, LLM info (see LLM Attributes), list of tool names (should not include personal info). No personal data. |
+| Yes       | Task Metadata | Includes: randomly generated key and ID, boolean execution settings (async_execution, human_input), associated agent's role and key, list of tool names. All non-personal. |
+| Yes       | Tool Usage Statistics | Includes: tool name (should not include personal info), number of usage attempts (integer), LLM attributes used. No personal data. |
+| Yes       | Test Execution Data | Includes: crew's randomly generated key and ID, number of iterations, model name used, quality score (float), execution time (in seconds). All non-personal. |
+| Yes       | Task Lifecycle Data | Includes: creation and execution start/end times, crew and task identifiers. Stored as spans with timestamps. No personal data. |
+| Yes       | LLM Attributes | Includes: name, model_name, model, top_k, temperature, and class name of the LLM. All technical, non-personal data. |
+| Yes       | Crew Deployment attempt using crewAI CLI | Includes: The fact a deploy is being made and crew id, and if it's trying to pull logs, no other data. |
+| No        | Agent's Expanded Data | Includes: goal description, backstory text, i18n prompt file identifier. Users should ensure no personal info is included in text fields. |
+| No        | Detailed Task Information | Includes: task description, expected output description, context references. Users should ensure no personal info is included in these fields. |
+| No        | Environment Information | Includes: platform, release, system, version, and CPU count. Example: 'Windows 10', 'x86_64'. No personal data. |
+| No        | Crew and Task Inputs and Outputs | Includes: input parameters and output results as non-identifiable data. Users should ensure no personal info is included. |
+| No        | Comprehensive Crew Execution Data | Includes: detailed logs of crew operations, all agents and tasks data, final output. All non-personal and technical in nature. |
+
+<Note>
+    "No" in the "Defaulted" column indicates that this data is only collected when `share_crew` is set to `true`.
+</Note>
+
+### Opt-In Further Telemetry Sharing
+
+Users can choose to share their complete telemetry data by enabling the `share_crew` attribute to `True` in their crew configurations. 
+Enabling `share_crew` results in the collection of detailed crew and task execution data, including `goal`, `backstory`, `context`, and `output` of tasks. 
+This enables a deeper insight into usage patterns.
+
+<Warning>
+    If you enable `share_crew`, the collected data may include personal information if it has been incorporated into crew configurations, task descriptions, or outputs. 
+    Users should carefully review their data and ensure compliance with GDPR and other applicable privacy regulations before enabling this feature.
+</Warning>

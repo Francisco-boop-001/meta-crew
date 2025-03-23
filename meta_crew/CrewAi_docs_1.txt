@@ -1,0 +1,2764 @@
+
+---
+File: /concepts/agents.mdx
+---
+
+---
+title: Agents
+description: Detailed guide on creating and managing agents within the CrewAI framework.
+icon: robot
+---
+
+## Overview of an Agent
+
+In the CrewAI framework, an `Agent` is an autonomous unit that can:
+- Perform specific tasks
+- Make decisions based on its role and goal
+- Use tools to accomplish objectives
+- Communicate and collaborate with other agents
+- Maintain memory of interactions
+- Delegate tasks when allowed
+
+<Tip>
+Think of an agent as a specialized team member with specific skills, expertise, and responsibilities. For example, a `Researcher` agent might excel at gathering and analyzing information, while a `Writer` agent might be better at creating content.
+</Tip>
+
+## Agent Attributes
+
+| Attribute                               | Parameter                | Type                          | Description                                                                                                          |
+| :-------------------------------------- | :----------------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| **Role**                                | `role`                   | `str`                         | Defines the agent's function and expertise within the crew.                                                           |
+| **Goal**                                | `goal`                   | `str`                         | The individual objective that guides the agent's decision-making.                                                     |
+| **Backstory**                           | `backstory`              | `str`                         | Provides context and personality to the agent, enriching interactions.                                                |
+| **LLM** _(optional)_                    | `llm`                    | `Union[str, LLM, Any]`        | Language model that powers the agent. Defaults to the model specified in `OPENAI_MODEL_NAME` or "gpt-4".              |
+| **Tools** _(optional)_                  | `tools`                  | `List[BaseTool]`              | Capabilities or functions available to the agent. Defaults to an empty list.                                          |
+| **Function Calling LLM** _(optional)_   | `function_calling_llm`   | `Optional[Any]`               | Language model for tool calling, overrides crew's LLM if specified.                                                   |
+| **Max Iterations** _(optional)_         | `max_iter`               | `int`                         | Maximum iterations before the agent must provide its best answer. Default is 20.                                      |
+| **Max RPM** _(optional)_                | `max_rpm`                | `Optional[int]`               | Maximum requests per minute to avoid rate limits.                                                                     |
+| **Max Execution Time** _(optional)_     | `max_execution_time`     | `Optional[int]`               | Maximum time (in seconds) for task execution.                                                                         |
+| **Memory** _(optional)_                 | `memory`                 | `bool`                        | Whether the agent should maintain memory of interactions. Default is True.                                            |
+| **Verbose** _(optional)_                | `verbose`                | `bool`                        | Enable detailed execution logs for debugging. Default is False.                                                       |
+| **Allow Delegation** _(optional)_       | `allow_delegation`       | `bool`                        | Allow the agent to delegate tasks to other agents. Default is False.                                                  |
+| **Step Callback** _(optional)_          | `step_callback`          | `Optional[Any]`               | Function called after each agent step, overrides crew callback.                                                       |
+| **Cache** _(optional)_                  | `cache`                  | `bool`                        | Enable caching for tool usage. Default is True.                                                                       |
+| **System Template** _(optional)_        | `system_template`        | `Optional[str]`               | Custom system prompt template for the agent.                                                                          |
+| **Prompt Template** _(optional)_        | `prompt_template`        | `Optional[str]`               | Custom prompt template for the agent.                                                                                 |
+| **Response Template** _(optional)_      | `response_template`      | `Optional[str]`               | Custom response template for the agent.                                                                               |
+| **Allow Code Execution** _(optional)_   | `allow_code_execution`   | `Optional[bool]`              | Enable code execution for the agent. Default is False.                                                                |
+| **Max Retry Limit** _(optional)_        | `max_retry_limit`        | `int`                         | Maximum number of retries when an error occurs. Default is 2.                                                         |
+| **Respect Context Window** _(optional)_ | `respect_context_window` | `bool`                        | Keep messages under context window size by summarizing. Default is True.                                              |
+| **Code Execution Mode** _(optional)_    | `code_execution_mode`    | `Literal["safe", "unsafe"]`   | Mode for code execution: 'safe' (using Docker) or 'unsafe' (direct). Default is 'safe'.                               |
+| **Embedder** _(optional)_               | `embedder`               | `Optional[Dict[str, Any]]`    | Configuration for the embedder used by the agent.                                                                     |
+| **Knowledge Sources** _(optional)_      | `knowledge_sources`      | `Optional[List[BaseKnowledgeSource]]` | Knowledge sources available to the agent.                                                                     |
+| **Use System Prompt** _(optional)_      | `use_system_prompt`      | `Optional[bool]`              | Whether to use system prompt (for o1 model support). Default is True.                                                 |
+
+## Creating Agents
+
+There are two ways to create agents in CrewAI: using **YAML configuration (recommended)** or defining them **directly in code**.
+
+### YAML Configuration (Recommended)
+
+Using YAML configuration provides a cleaner, more maintainable way to define agents. We strongly recommend using this approach in your CrewAI projects.
+
+After creating your CrewAI project as outlined in the [Installation](/installation) section, navigate to the `src/latest_ai_development/config/agents.yaml` file and modify the template to match your requirements.
+
+<Note>
+Variables in your YAML files (like `{topic}`) will be replaced with values from your inputs when running the crew:
+```python Code
+crew.kickoff(inputs={'topic': 'AI Agents'})
+```
+</Note>
+
+Here's an example of how to configure agents using YAML:
+
+```yaml agents.yaml
+# src/latest_ai_development/config/agents.yaml
+researcher:
+  role: >
+    {topic} Senior Data Researcher
+  goal: >
+    Uncover cutting-edge developments in {topic}
+  backstory: >
+    You're a seasoned researcher with a knack for uncovering the latest
+    developments in {topic}. Known for your ability to find the most relevant
+    information and present it in a clear and concise manner.
+
+reporting_analyst:
+  role: >
+    {topic} Reporting Analyst
+  goal: >
+    Create detailed reports based on {topic} data analysis and research findings
+  backstory: >
+    You're a meticulous analyst with a keen eye for detail. You're known for
+    your ability to turn complex data into clear and concise reports, making
+    it easy for others to understand and act on the information you provide.
+```
+
+To use this YAML configuration in your code, create a crew class that inherits from `CrewBase`:
+
+```python Code
+# src/latest_ai_development/crew.py
+from crewai import Agent, Crew, Process
+from crewai.project import CrewBase, agent, crew
+from crewai_tools import SerperDevTool
+
+@CrewBase
+class LatestAiDevelopmentCrew():
+  """LatestAiDevelopment crew"""
+
+  agents_config = "config/agents.yaml"
+
+  @agent
+  def researcher(self) -> Agent:
+    return Agent(
+      config=self.agents_config['researcher'],
+      verbose=True,
+      tools=[SerperDevTool()]
+    )
+
+  @agent
+  def reporting_analyst(self) -> Agent:
+    return Agent(
+      config=self.agents_config['reporting_analyst'],
+      verbose=True
+    )
+```
+
+<Note>
+The names you use in your YAML files (`agents.yaml`) should match the method names in your Python code.
+</Note>
+
+### Direct Code Definition
+
+You can create agents directly in code by instantiating the `Agent` class. Here's a comprehensive example showing all available parameters:
+
+```python Code
+from crewai import Agent
+from crewai_tools import SerperDevTool
+
+# Create an agent with all available parameters
+agent = Agent(
+    role="Senior Data Scientist",
+    goal="Analyze and interpret complex datasets to provide actionable insights",
+    backstory="With over 10 years of experience in data science and machine learning, "
+              "you excel at finding patterns in complex datasets.",
+    llm="gpt-4",  # Default: OPENAI_MODEL_NAME or "gpt-4"
+    function_calling_llm=None,  # Optional: Separate LLM for tool calling
+    memory=True,  # Default: True
+    verbose=False,  # Default: False
+    allow_delegation=False,  # Default: False
+    max_iter=20,  # Default: 20 iterations
+    max_rpm=None,  # Optional: Rate limit for API calls
+    max_execution_time=None,  # Optional: Maximum execution time in seconds
+    max_retry_limit=2,  # Default: 2 retries on error
+    allow_code_execution=False,  # Default: False
+    code_execution_mode="safe",  # Default: "safe" (options: "safe", "unsafe")
+    respect_context_window=True,  # Default: True
+    use_system_prompt=True,  # Default: True
+    tools=[SerperDevTool()],  # Optional: List of tools
+    knowledge_sources=None,  # Optional: List of knowledge sources
+    embedder=None,  # Optional: Custom embedder configuration
+    system_template=None,  # Optional: Custom system prompt template
+    prompt_template=None,  # Optional: Custom prompt template
+    response_template=None,  # Optional: Custom response template
+    step_callback=None,  # Optional: Callback function for monitoring
+)
+```
+
+Let's break down some key parameter combinations for common use cases:
+
+#### Basic Research Agent
+```python Code
+research_agent = Agent(
+    role="Research Analyst",
+    goal="Find and summarize information about specific topics",
+    backstory="You are an experienced researcher with attention to detail",
+    tools=[SerperDevTool()],
+    verbose=True  # Enable logging for debugging
+)
+```
+
+#### Code Development Agent
+```python Code
+dev_agent = Agent(
+    role="Senior Python Developer",
+    goal="Write and debug Python code",
+    backstory="Expert Python developer with 10 years of experience",
+    allow_code_execution=True,
+    code_execution_mode="safe",  # Uses Docker for safety
+    max_execution_time=300,  # 5-minute timeout
+    max_retry_limit=3  # More retries for complex code tasks
+)
+```
+
+#### Long-Running Analysis Agent
+```python Code
+analysis_agent = Agent(
+    role="Data Analyst",
+    goal="Perform deep analysis of large datasets",
+    backstory="Specialized in big data analysis and pattern recognition",
+    memory=True,
+    respect_context_window=True,
+    max_rpm=10,  # Limit API calls
+    function_calling_llm="gpt-4o-mini"  # Cheaper model for tool calls
+)
+```
+
+#### Custom Template Agent
+```python Code
+custom_agent = Agent(
+    role="Customer Service Representative",
+    goal="Assist customers with their inquiries",
+    backstory="Experienced in customer support with a focus on satisfaction",
+    system_template="""<|start_header_id|>system<|end_header_id|>
+                        {{ .System }}<|eot_id|>""",
+    prompt_template="""<|start_header_id|>user<|end_header_id|>
+                        {{ .Prompt }}<|eot_id|>""",
+    response_template="""<|start_header_id|>assistant<|end_header_id|>
+                        {{ .Response }}<|eot_id|>""",
+)
+```
+
+### Parameter Details
+
+#### Critical Parameters
+- `role`, `goal`, and `backstory` are required and shape the agent's behavior
+- `llm` determines the language model used (default: OpenAI's GPT-4)
+
+#### Memory and Context
+- `memory`: Enable to maintain conversation history
+- `respect_context_window`: Prevents token limit issues
+- `knowledge_sources`: Add domain-specific knowledge bases
+
+#### Execution Control
+- `max_iter`: Maximum attempts before giving best answer
+- `max_execution_time`: Timeout in seconds
+- `max_rpm`: Rate limiting for API calls
+- `max_retry_limit`: Retries on error
+
+#### Code Execution
+- `allow_code_execution`: Must be True to run code
+- `code_execution_mode`: 
+  - `"safe"`: Uses Docker (recommended for production)
+  - `"unsafe"`: Direct execution (use only in trusted environments)
+
+#### Templates
+- `system_template`: Defines agent's core behavior
+- `prompt_template`: Structures input format
+- `response_template`: Formats agent responses
+
+<Note>
+When using custom templates, you can use variables like `{role}`, `{goal}`, and `{input}` in your templates. These will be automatically populated during execution.
+</Note>
+
+## Agent Tools
+
+Agents can be equipped with various tools to enhance their capabilities. CrewAI supports tools from:
+- [CrewAI Toolkit](https://github.com/joaomdmoura/crewai-tools)
+- [LangChain Tools](https://python.langchain.com/docs/integrations/tools)
+
+Here's how to add tools to an agent:
+
+```python Code
+from crewai import Agent
+from crewai_tools import SerperDevTool, WikipediaTools
+
+# Create tools
+search_tool = SerperDevTool()
+wiki_tool = WikipediaTools()
+
+# Add tools to agent
+researcher = Agent(
+    role="AI Technology Researcher",
+    goal="Research the latest AI developments",
+    tools=[search_tool, wiki_tool],
+    verbose=True
+)
+```
+
+## Agent Memory and Context
+
+Agents can maintain memory of their interactions and use context from previous tasks. This is particularly useful for complex workflows where information needs to be retained across multiple tasks.
+
+```python Code
+from crewai import Agent
+
+analyst = Agent(
+    role="Data Analyst",
+    goal="Analyze and remember complex data patterns",
+    memory=True,  # Enable memory
+    verbose=True
+)
+```
+
+<Note>
+When `memory` is enabled, the agent will maintain context across multiple interactions, improving its ability to handle complex, multi-step tasks.
+</Note>
+
+## Important Considerations and Best Practices
+
+### Security and Code Execution
+- When using `allow_code_execution`, be cautious with user input and always validate it
+- Use `code_execution_mode: "safe"` (Docker) in production environments
+- Consider setting appropriate `max_execution_time` limits to prevent infinite loops
+
+### Performance Optimization
+- Use `respect_context_window: true` to prevent token limit issues
+- Set appropriate `max_rpm` to avoid rate limiting
+- Enable `cache: true` to improve performance for repetitive tasks
+- Adjust `max_iter` and `max_retry_limit` based on task complexity
+
+### Memory and Context Management
+- Use `memory: true` for tasks requiring historical context
+- Leverage `knowledge_sources` for domain-specific information
+- Configure `embedder_config` when using custom embedding models
+- Use custom templates (`system_template`, `prompt_template`, `response_template`) for fine-grained control over agent behavior
+
+### Agent Collaboration
+- Enable `allow_delegation: true` when agents need to work together
+- Use `step_callback` to monitor and log agent interactions
+- Consider using different LLMs for different purposes:
+  - Main `llm` for complex reasoning
+  - `function_calling_llm` for efficient tool usage
+
+### Model Compatibility
+- Set `use_system_prompt: false` for older models that don't support system messages
+- Ensure your chosen `llm` supports the features you need (like function calling)
+
+## Troubleshooting Common Issues
+
+1. **Rate Limiting**: If you're hitting API rate limits:
+   - Implement appropriate `max_rpm`
+   - Use caching for repetitive operations
+   - Consider batching requests
+
+2. **Context Window Errors**: If you're exceeding context limits:
+   - Enable `respect_context_window`
+   - Use more efficient prompts
+   - Clear agent memory periodically
+
+3. **Code Execution Issues**: If code execution fails:
+   - Verify Docker is installed for safe mode
+   - Check execution permissions
+   - Review code sandbox settings
+
+4. **Memory Issues**: If agent responses seem inconsistent:
+   - Verify memory is enabled
+   - Check knowledge source configuration
+   - Review conversation history management
+
+Remember that agents are most effective when configured according to their specific use case. Take time to understand your requirements and adjust these parameters accordingly.
+
+
+
+---
+File: /concepts/cli.mdx
+---
+
+---
+title: CLI
+description: Learn how to use the CrewAI CLI to interact with CrewAI.
+icon: terminal
+---
+
+# CrewAI CLI Documentation
+
+The CrewAI CLI provides a set of commands to interact with CrewAI, allowing you to create, train, run, and manage crews & flows.
+
+## Installation
+
+To use the CrewAI CLI, make sure you have CrewAI installed:
+
+```shell Terminal
+pip install crewai
+```
+
+## Basic Usage
+
+The basic structure of a CrewAI CLI command is:
+
+```shell Terminal
+crewai [COMMAND] [OPTIONS] [ARGUMENTS]
+```
+
+## Available Commands
+
+### 1. Create
+
+Create a new crew or flow.
+
+```shell Terminal
+crewai create [OPTIONS] TYPE NAME
+```
+
+- `TYPE`: Choose between "crew" or "flow"
+- `NAME`: Name of the crew or flow
+
+Example:
+```shell Terminal
+crewai create crew my_new_crew
+crewai create flow my_new_flow
+```
+
+### 2. Version
+
+Show the installed version of CrewAI.
+
+```shell Terminal
+crewai version [OPTIONS]
+```
+
+- `--tools`: (Optional) Show the installed version of CrewAI tools
+
+Example:
+```shell Terminal
+crewai version
+crewai version --tools
+```
+
+### 3. Train
+
+Train the crew for a specified number of iterations.
+
+```shell Terminal
+crewai train [OPTIONS]
+```
+
+- `-n, --n_iterations INTEGER`: Number of iterations to train the crew (default: 5)
+- `-f, --filename TEXT`: Path to a custom file for training (default: "trained_agents_data.pkl")
+
+Example:
+```shell Terminal
+crewai train -n 10 -f my_training_data.pkl
+```
+
+### 4. Replay
+
+Replay the crew execution from a specific task.
+
+```shell Terminal
+crewai replay [OPTIONS]
+```
+
+- `-t, --task_id TEXT`: Replay the crew from this task ID, including all subsequent tasks
+
+Example:
+```shell Terminal    
+crewai replay -t task_123456
+```
+
+### 5. Log-tasks-outputs
+
+Retrieve your latest crew.kickoff() task outputs.
+
+```shell Terminal
+crewai log-tasks-outputs
+```
+
+### 6. Reset-memories
+
+Reset the crew memories (long, short, entity, latest_crew_kickoff_outputs).
+
+```shell Terminal
+crewai reset-memories [OPTIONS]
+```
+
+- `-l, --long`: Reset LONG TERM memory
+- `-s, --short`: Reset SHORT TERM memory
+- `-e, --entities`: Reset ENTITIES memory
+- `-k, --kickoff-outputs`: Reset LATEST KICKOFF TASK OUTPUTS
+- `-a, --all`: Reset ALL memories
+
+Example:
+```shell Terminal
+crewai reset-memories --long --short
+crewai reset-memories --all
+```
+
+### 7. Test
+
+Test the crew and evaluate the results.
+
+```shell Terminal
+crewai test [OPTIONS]
+```
+
+- `-n, --n_iterations INTEGER`: Number of iterations to test the crew (default: 3)
+- `-m, --model TEXT`: LLM Model to run the tests on the Crew (default: "gpt-4o-mini")
+
+Example:
+```shell Terminal    
+crewai test -n 5 -m gpt-3.5-turbo
+```
+
+### 8. Run
+
+Run the crew.
+
+```shell Terminal
+crewai run
+```
+<Note>
+Make sure to run these commands from the directory where your CrewAI project is set up. 
+Some commands may require additional configuration or setup within your project structure.
+</Note>
+
+
+### 9. Chat
+
+Starting in version `0.98.0`, when you run the `crewai chat` command, you start an interactive session with your crew. The AI assistant will guide you by asking for necessary inputs to execute the crew. Once all inputs are provided, the crew will execute its tasks.
+
+After receiving the results, you can continue interacting with the assistant for further instructions or questions.
+
+```shell Terminal
+crewai chat
+```
+<Note>
+Ensure you execute these commands from your CrewAI project's root directory.
+</Note>
+<Note>
+IMPORTANT: Set the `chat_llm` property in your `crew.py` file to enable this command.
+
+```python
+@crew
+def crew(self) -> Crew:
+    return Crew(
+        agents=self.agents,
+        tasks=self.tasks,
+        process=Process.sequential,
+        verbose=True,
+        chat_llm="gpt-4o",  # LLM for chat orchestration
+    )
+```
+</Note>
+
+
+### 10. API Keys
+
+When running ```crewai create crew``` command, the CLI will first show you the top 5 most common LLM providers and ask you to select one.
+
+Once you've selected an LLM provider, you will be prompted for API keys.
+
+#### Initial API key providers
+
+The CLI will initially prompt for API keys for the following services:
+
+* OpenAI
+* Groq
+* Anthropic
+* Google Gemini
+* SambaNova
+
+When you select a provider, the CLI will prompt you to enter your API key.
+
+#### Other Options
+
+If you select option 6, you will be able to select from a list of LiteLLM supported providers.
+
+When you select a provider, the CLI will prompt you to enter the Key name and the API key.
+
+See the following link for each provider's key name:
+
+* [LiteLLM Providers](https://docs.litellm.ai/docs/providers)
+
+
+
+
+
+
+---
+File: /concepts/collaboration.mdx
+---
+
+---
+title: Collaboration
+description: Exploring the dynamics of agent collaboration within the CrewAI framework, focusing on the newly integrated features for enhanced functionality.
+icon: screen-users
+---
+
+## Collaboration Fundamentals      
+
+Collaboration in CrewAI is fundamental, enabling agents to combine their skills, share information, and assist each other in task execution, embodying a truly cooperative ecosystem.
+
+- **Information Sharing**: Ensures all agents are well-informed and can contribute effectively by sharing data and findings.
+- **Task Assistance**: Allows agents to seek help from peers with the required expertise for specific tasks.
+- **Resource Allocation**: Optimizes task execution through the efficient distribution and sharing of resources among agents.
+
+## Enhanced Attributes for Improved Collaboration
+
+The `Crew` class has been enriched with several attributes to support advanced functionalities:
+
+| Feature                                    | Description                                                                                                                                                                                                                  |
+|:-------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Language Model Management** (`manager_llm`, `function_calling_llm`) | Manages language models for executing tasks and tools. `manager_llm` is required for hierarchical processes, while `function_calling_llm` is optional with a default value for streamlined interactions.                    |
+| **Custom Manager Agent** (`manager_agent`) | Specifies a custom agent as the manager, replacing the default CrewAI manager.                                                                                                                                                |
+| **Process Flow** (`process`)           | Defines execution logic (e.g., sequential, hierarchical) for task distribution.                                                                                                                                                |
+| **Verbose Logging** (`verbose`)        | Provides detailed logging for monitoring and debugging. Accepts integer and boolean values to control verbosity level.                                                                                                       |
+| **Rate Limiting** (`max_rpm`)          | Limits requests per minute to optimize resource usage. Setting guidelines depend on task complexity and load.                                                                                                                 |
+| **Internationalization / Customization** (`language`, `prompt_file`) | Supports prompt customization for global usability. [Example of file](https://github.com/joaomdmoura/crewAI/blob/main/src/crewai/translations/en.json)                                                                                      |
+| **Execution and Output Handling** (`full_output`) | Controls output granularity, distinguishing between full and final outputs.                                                                                                                                                  |
+| **Callback and Telemetry** (`step_callback`, `task_callback`) | Enables step-wise and task-level execution monitoring and telemetry for performance analytics.                                                                                                                               |
+| **Crew Sharing** (`share_crew`)        | Allows sharing crew data with CrewAI for model improvement. Privacy implications and benefits should be considered.                                                                                                          |
+| **Usage Metrics** (`usage_metrics`)    | Logs all LLM usage metrics during task execution for performance insights.                                                                                                                           |
+| **Memory Usage** (`memory`)            | Enables memory for storing execution history, aiding in agent learning and task efficiency.                                                                                                                                  |
+| **Embedder Configuration** (`embedder`) | Configures the embedder for language understanding and generation, with support for provider customization.                                                                                                                   |
+| **Cache Management** (`cache`)         | Specifies whether to cache tool execution results, enhancing performance.                                                                                                                                                   |
+| **Output Logging** (`output_log_file`) | Defines the file path for logging crew execution output.                                                                                                                                                                      |
+| **Planning Mode** (`planning`)         | Enables action planning before task execution. Set `planning=True` to activate.                                                                                                                                              |
+| **Replay Feature** (`replay`)         | Provides CLI for listing tasks from the last run and replaying from specific tasks, aiding in task management and troubleshooting.                                                                                           |
+
+## Delegation (Dividing to Conquer)
+
+Delegation enhances functionality by allowing agents to intelligently assign tasks or seek help, thereby amplifying the crew's overall capability.
+
+## Implementing Collaboration and Delegation
+
+Setting up a crew involves defining the roles and capabilities of each agent. CrewAI seamlessly manages their interactions, ensuring efficient collaboration and delegation, with enhanced customization and monitoring features to adapt to various operational needs.
+
+## Example Scenario
+
+Consider a crew with a researcher agent tasked with data gathering and a writer agent responsible for compiling reports. The integration of advanced language model management and process flow attributes allows for more sophisticated interactions, such as the writer delegating complex research tasks to the researcher or querying specific information, thereby facilitating a seamless workflow.
+
+## Conclusion
+
+The integration of advanced attributes and functionalities into the CrewAI framework significantly enriches the agent collaboration ecosystem. These enhancements not only simplify interactions but also offer unprecedented flexibility and control, paving the way for sophisticated AI-driven solutions capable of tackling complex tasks through intelligent collaboration and delegation.
+
+
+---
+File: /concepts/crews.mdx
+---
+
+---
+title: Crews
+description: Understanding and utilizing crews in the crewAI framework with comprehensive attributes and functionalities.
+icon: people-group
+---
+
+## What is a Crew?
+
+A crew in crewAI represents a collaborative group of agents working together to achieve a set of tasks. Each crew defines the strategy for task execution, agent collaboration, and the overall workflow.
+
+## Crew Attributes
+
+| Attribute                             | Parameters             | Description                                                                                                                                                                                                                                               |
+| :------------------------------------ | :--------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tasks**                             | `tasks`                | A list of tasks assigned to the crew.                                                                                                                                                                                                                     |
+| **Agents**                            | `agents`               | A list of agents that are part of the crew.                                                                                                                                                                                                               |
+| **Process** _(optional)_              | `process`              | The process flow (e.g., sequential, hierarchical) the crew follows. Default is `sequential`.                                                                                                                                                              |
+| **Verbose** _(optional)_              | `verbose`              | The verbosity level for logging during execution. Defaults to `False`.                                                                                                                                                                                    |
+| **Manager LLM** _(optional)_          | `manager_llm`          | The language model used by the manager agent in a hierarchical process. **Required when using a hierarchical process.**                                                                                                                                   |
+| **Function Calling LLM** _(optional)_ | `function_calling_llm` | If passed, the crew will use this LLM to do function calling for tools for all agents in the crew. Each agent can have its own LLM, which overrides the crew's LLM for function calling.                                                                  |
+| **Config** _(optional)_               | `config`               | Optional configuration settings for the crew, in `Json` or `Dict[str, Any]` format.                                                                                                                                                                       |
+| **Max RPM** _(optional)_              | `max_rpm`              | Maximum requests per minute the crew adheres to during execution. Defaults to `None`.                                                                                                                                                                     |
+| **Language** _(optional)_             | `language`             | Language used for the crew, defaults to English.                                                                                                                                                                                                          |
+| **Language File** _(optional)_        | `language_file`        | Path to the language file to be used for the crew.                                                                                                                                                                                                        |
+| **Memory** _(optional)_               | `memory`               | Utilized for storing execution memories (short-term, long-term, entity memory).                                                                                                                                                                           |
+| **Memory Config** _(optional)_        | `memory_config`        | Configuration for the memory provider to be used by the crew.                                                                                                                                                                                             |
+| **Cache** _(optional)_                | `cache`                | Specifies whether to use a cache for storing the results of tools' execution. Defaults to `True`.                                                                                                                                                         |
+| **Embedder** _(optional)_             | `embedder`             | Configuration for the embedder to be used by the crew. Mostly used by memory for now. Default is `{"provider": "openai"}`.                                                                                                                                |
+| **Full Output** _(optional)_          | `full_output`          | Whether the crew should return the full output with all tasks outputs or just the final output. Defaults to `False`.                                                                                                                                      |
+| **Step Callback** _(optional)_        | `step_callback`        | A function that is called after each step of every agent. This can be used to log the agent's actions or to perform other operations; it won't override the agent-specific `step_callback`.                                                               |
+| **Task Callback** _(optional)_        | `task_callback`        | A function that is called after the completion of each task. Useful for monitoring or additional operations post-task execution.                                                                                                                          |
+| **Share Crew** _(optional)_           | `share_crew`           | Whether you want to share the complete crew information and execution with the crewAI team to make the library better, and allow us to train models.                                                                                                      |
+| **Output Log File** _(optional)_      | `output_log_file`      | Set to True to save logs as logs.txt in the current directory or provide a file path. Logs will be in JSON format if the filename ends in .json, otherwise .txt. Defautls to `None`.                                                                      |
+| **Manager Agent** _(optional)_        | `manager_agent`        | `manager` sets a custom agent that will be used as a manager.                                                                                                                                                                                             |
+| **Prompt File** _(optional)_          | `prompt_file`          | Path to the prompt JSON file to be used for the crew.                                                                                                                                                                                                     |
+| **Planning** *(optional)*             | `planning`             | Adds planning ability to the Crew. When activated before each Crew iteration, all Crew data is sent to an AgentPlanner that will plan the tasks and this plan will be added to each task description.                                                     |
+| **Planning LLM** *(optional)*         | `planning_llm`         | The language model used by the AgentPlanner in a planning process.                                                                                                                                                                                        |
+
+<Tip>
+**Crew Max RPM**: The `max_rpm` attribute sets the maximum number of requests per minute the crew can perform to avoid rate limits and will override individual agents' `max_rpm` settings if you set it.
+</Tip>
+
+## Creating Crews
+
+There are two ways to create crews in CrewAI: using **YAML configuration (recommended)** or defining them **directly in code**.
+
+### YAML Configuration (Recommended)
+
+Using YAML configuration provides a cleaner, more maintainable way to define crews and is consistent with how agents and tasks are defined in CrewAI projects.
+
+After creating your CrewAI project as outlined in the [Installation](/installation) section, you can define your crew in a class that inherits from `CrewBase` and uses decorators to define agents, tasks, and the crew itself.
+
+#### Example Crew Class with Decorators
+
+```python code
+from crewai import Agent, Crew, Task, Process
+from crewai.project import CrewBase, agent, task, crew, before_kickoff, after_kickoff
+
+
+@CrewBase
+class YourCrewName:
+    """Description of your crew"""
+
+    # Paths to your YAML configuration files
+    # To see an example agent and task defined in YAML, checkout the following:
+    # - Task: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
+    # - Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
+    agents_config = 'config/agents.yaml' 
+    tasks_config = 'config/tasks.yaml' 
+
+    @before_kickoff
+    def prepare_inputs(self, inputs):
+        # Modify inputs before the crew starts
+        inputs['additional_data'] = "Some extra information"
+        return inputs
+
+    @after_kickoff
+    def process_output(self, output):
+        # Modify output after the crew finishes
+        output.raw += "\nProcessed after kickoff."
+        return output
+
+    @agent
+    def agent_one(self) -> Agent:
+        return Agent(
+            config=self.agents_config['agent_one'],
+            verbose=True
+        )
+
+    @agent
+    def agent_two(self) -> Agent:
+        return Agent(
+            config=self.agents_config['agent_two'],
+            verbose=True
+        )
+
+    @task
+    def task_one(self) -> Task:
+        return Task(
+            config=self.tasks_config['task_one']
+        )
+
+    @task
+    def task_two(self) -> Task:
+        return Task(
+            config=self.tasks_config['task_two']
+        )
+
+    @crew
+    def crew(self) -> Crew:
+        return Crew(
+            agents=self.agents,  # Automatically collected by the @agent decorator
+            tasks=self.tasks,    # Automatically collected by the @task decorator. 
+            process=Process.sequential,
+            verbose=True,
+        )
+```
+
+<Note>
+Tasks will be executed in the order they are defined.
+</Note>
+
+The `CrewBase` class, along with these decorators, automates the collection of agents and tasks, reducing the need for manual management.
+
+#### Decorators overview from `annotations.py`
+
+CrewAI provides several decorators in the `annotations.py` file that are used to mark methods within your crew class for special handling:
+
+- `@CrewBase`: Marks the class as a crew base class.
+- `@agent`: Denotes a method that returns an `Agent` object.
+- `@task`: Denotes a method that returns a `Task` object.
+- `@crew`: Denotes the method that returns the `Crew` object.
+- `@before_kickoff`: (Optional) Marks a method to be executed before the crew starts.
+- `@after_kickoff`: (Optional) Marks a method to be executed after the crew finishes.
+
+These decorators help in organizing your crew's structure and automatically collecting agents and tasks without manually listing them.
+
+### Direct Code Definition (Alternative)
+
+Alternatively, you can define the crew directly in code without using YAML configuration files.
+
+```python code
+from crewai import Agent, Crew, Task, Process
+from crewai_tools import YourCustomTool
+
+class YourCrewName:
+    def agent_one(self) -> Agent:
+        return Agent(
+            role="Data Analyst",
+            goal="Analyze data trends in the market",
+            backstory="An experienced data analyst with a background in economics",
+            verbose=True,
+            tools=[YourCustomTool()]
+        )
+
+    def agent_two(self) -> Agent:
+        return Agent(
+            role="Market Researcher",
+            goal="Gather information on market dynamics",
+            backstory="A diligent researcher with a keen eye for detail",
+            verbose=True
+        )
+
+    def task_one(self) -> Task:
+        return Task(
+            description="Collect recent market data and identify trends.",
+            expected_output="A report summarizing key trends in the market.",
+            agent=self.agent_one()
+        )
+
+    def task_two(self) -> Task:
+        return Task(
+            description="Research factors affecting market dynamics.",
+            expected_output="An analysis of factors influencing the market.",
+            agent=self.agent_two()
+        )
+
+    def crew(self) -> Crew:
+        return Crew(
+            agents=[self.agent_one(), self.agent_two()],
+            tasks=[self.task_one(), self.task_two()],
+            process=Process.sequential,
+            verbose=True
+        )
+```
+
+In this example:
+
+- Agents and tasks are defined directly within the class without decorators.
+- We manually create and manage the list of agents and tasks.
+- This approach provides more control but can be less maintainable for larger projects.
+
+## Crew Output
+
+The output of a crew in the CrewAI framework is encapsulated within the `CrewOutput` class.
+This class provides a structured way to access results of the crew's execution, including various formats such as raw strings, JSON, and Pydantic models.
+The `CrewOutput` includes the results from the final task output, token usage, and individual task outputs.
+
+### Crew Output Attributes
+
+| Attribute        | Parameters     | Type                       | Description                                                                                          |
+| :--------------- | :------------- | :------------------------- | :--------------------------------------------------------------------------------------------------- |
+| **Raw**          | `raw`          | `str`                      | The raw output of the crew. This is the default format for the output.                               |
+| **Pydantic**     | `pydantic`     | `Optional[BaseModel]`      | A Pydantic model object representing the structured output of the crew.                              |
+| **JSON Dict**    | `json_dict`    | `Optional[Dict[str, Any]]` | A dictionary representing the JSON output of the crew.                                               |
+| **Tasks Output** | `tasks_output` | `List[TaskOutput]`         | A list of `TaskOutput` objects, each representing the output of a task in the crew.                  |
+| **Token Usage**  | `token_usage`  | `Dict[str, Any]`           | A summary of token usage, providing insights into the language model's performance during execution. |
+
+### Crew Output Methods and Properties
+
+| Method/Property | Description                                                                                       |
+| :-------------- | :------------------------------------------------------------------------------------------------ |
+| **json**        | Returns the JSON string representation of the crew output if the output format is JSON.           |
+| **to_dict**     | Converts the JSON and Pydantic outputs to a dictionary.                                           |
+| \***\*str\*\*** | Returns the string representation of the crew output, prioritizing Pydantic, then JSON, then raw. |
+
+### Accessing Crew Outputs
+
+Once a crew has been executed, its output can be accessed through the `output` attribute of the `Crew` object. The `CrewOutput` class provides various ways to interact with and present this output.
+
+#### Example
+
+```python Code
+# Example crew execution
+crew = Crew(
+    agents=[research_agent, writer_agent],
+    tasks=[research_task, write_article_task],
+    verbose=True
+)
+
+crew_output = crew.kickoff()
+
+# Accessing the crew output
+print(f"Raw Output: {crew_output.raw}")
+if crew_output.json_dict:
+    print(f"JSON Output: {json.dumps(crew_output.json_dict, indent=2)}")
+if crew_output.pydantic:
+    print(f"Pydantic Output: {crew_output.pydantic}")
+print(f"Tasks Output: {crew_output.tasks_output}")
+print(f"Token Usage: {crew_output.token_usage}")
+```
+
+## Accessing Crew Logs
+
+You can see real time log of the crew execution, by setting `output_log_file` as a `True(Boolean)` or a `file_name(str)`. Supports logging of events as both `file_name.txt` and `file_name.json`.
+In case of `True(Boolean)` will save as `logs.txt`.
+
+In case of `output_log_file` is set as `False(Booelan)` or `None`, the logs will not be populated.
+
+```python Code
+# Save crew logs
+crew = Crew(output_log_file = True)  # Logs will be saved as logs.txt
+crew = Crew(output_log_file = file_name)  # Logs will be saved as file_name.txt
+crew = Crew(output_log_file = file_name.txt)  # Logs will be saved as file_name.txt
+crew = Crew(output_log_file = file_name.json)  # Logs will be saved as file_name.json
+```
+
+
+
+## Memory Utilization
+
+Crews can utilize memory (short-term, long-term, and entity memory) to enhance their execution and learning over time. This feature allows crews to store and recall execution memories, aiding in decision-making and task execution strategies.
+
+## Cache Utilization
+
+Caches can be employed to store the results of tools' execution, making the process more efficient by reducing the need to re-execute identical tasks.
+
+## Crew Usage Metrics
+
+After the crew execution, you can access the `usage_metrics` attribute to view the language model (LLM) usage metrics for all tasks executed by the crew. This provides insights into operational efficiency and areas for improvement.
+
+```python Code
+# Access the crew's usage metrics
+crew = Crew(agents=[agent1, agent2], tasks=[task1, task2])
+crew.kickoff()
+print(crew.usage_metrics)
+```
+
+## Crew Execution Process
+
+- **Sequential Process**: Tasks are executed one after another, allowing for a linear flow of work.
+- **Hierarchical Process**: A manager agent coordinates the crew, delegating tasks and validating outcomes before proceeding. **Note**: A `manager_llm` or `manager_agent` is required for this process and it's essential for validating the process flow.
+
+### Kicking Off a Crew
+
+Once your crew is assembled, initiate the workflow with the `kickoff()` method. This starts the execution process according to the defined process flow.
+
+```python Code
+# Start the crew's task execution
+result = my_crew.kickoff()
+print(result)
+```
+
+### Different Ways to Kick Off a Crew
+
+Once your crew is assembled, initiate the workflow with the appropriate kickoff method. CrewAI provides several methods for better control over the kickoff process: `kickoff()`, `kickoff_for_each()`, `kickoff_async()`, and `kickoff_for_each_async()`.
+
+- `kickoff()`: Starts the execution process according to the defined process flow.
+- `kickoff_for_each()`: Executes tasks sequentially for each provided input event or item in the collection.
+- `kickoff_async()`: Initiates the workflow asynchronously.
+- `kickoff_for_each_async()`: Executes tasks concurrently for each provided input event or item, leveraging asynchronous processing.
+
+```python Code
+# Start the crew's task execution
+result = my_crew.kickoff()
+print(result)
+
+# Example of using kickoff_for_each
+inputs_array = [{'topic': 'AI in healthcare'}, {'topic': 'AI in finance'}]
+results = my_crew.kickoff_for_each(inputs=inputs_array)
+for result in results:
+    print(result)
+
+# Example of using kickoff_async
+inputs = {'topic': 'AI in healthcare'}
+async_result = my_crew.kickoff_async(inputs=inputs)
+print(async_result)
+
+# Example of using kickoff_for_each_async
+inputs_array = [{'topic': 'AI in healthcare'}, {'topic': 'AI in finance'}]
+async_results = my_crew.kickoff_for_each_async(inputs=inputs_array)
+for async_result in async_results:
+    print(async_result)
+```
+
+These methods provide flexibility in how you manage and execute tasks within your crew, allowing for both synchronous and asynchronous workflows tailored to your needs.
+
+### Replaying from a Specific Task
+
+You can now replay from a specific task using our CLI command `replay`.
+
+The replay feature in CrewAI allows you to replay from a specific task using the command-line interface (CLI). By running the command `crewai replay -t <task_id>`, you can specify the `task_id` for the replay process.
+
+Kickoffs will now save the latest kickoffs returned task outputs locally for you to be able to replay from.
+
+### Replaying from a Specific Task Using the CLI
+
+To use the replay feature, follow these steps:
+
+1. Open your terminal or command prompt.
+2. Navigate to the directory where your CrewAI project is located.
+3. Run the following command:
+
+To view the latest kickoff task IDs, use:
+
+```shell
+crewai log-tasks-outputs
+```
+
+Then, to replay from a specific task, use:
+
+```shell
+crewai replay -t <task_id>
+```
+
+These commands let you replay from your latest kickoff tasks, still retaining context from previously executed tasks.
+
+
+
+---
+File: /concepts/flows.mdx
+---
+
+---
+title: Flows
+description: Learn how to create and manage AI workflows using CrewAI Flows.
+icon: arrow-progress
+---
+
+## Introduction
+
+CrewAI Flows is a powerful feature designed to streamline the creation and management of AI workflows. Flows allow developers to combine and coordinate coding tasks and Crews efficiently, providing a robust framework for building sophisticated AI automations.
+
+Flows allow you to create structured, event-driven workflows. They provide a seamless way to connect multiple tasks, manage state, and control the flow of execution in your AI applications. With Flows, you can easily design and implement multi-step processes that leverage the full potential of CrewAI's capabilities.
+
+1. **Simplified Workflow Creation**: Easily chain together multiple Crews and tasks to create complex AI workflows.
+
+2. **State Management**: Flows make it super easy to manage and share state between different tasks in your workflow.
+
+3. **Event-Driven Architecture**: Built on an event-driven model, allowing for dynamic and responsive workflows.
+
+4. **Flexible Control Flow**: Implement conditional logic, loops, and branching within your workflows.
+
+## Getting Started
+
+Let's create a simple Flow where you will use OpenAI to generate a random city in one task and then use that city to generate a fun fact in another task.
+
+```python Code
+
+from crewai.flow.flow import Flow, listen, start
+from dotenv import load_dotenv
+from litellm import completion
+
+
+class ExampleFlow(Flow):
+    model = "gpt-4o-mini"
+
+    @start()
+    def generate_city(self):
+        print("Starting flow")
+        # Each flow state automatically gets a unique ID
+        print(f"Flow State ID: {self.state['id']}")
+
+        response = completion(
+            model=self.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Return the name of a random city in the world.",
+                },
+            ],
+        )
+
+        random_city = response["choices"][0]["message"]["content"]
+        # Store the city in our state
+        self.state["city"] = random_city
+        print(f"Random City: {random_city}")
+
+        return random_city
+
+    @listen(generate_city)
+    def generate_fun_fact(self, random_city):
+        response = completion(
+            model=self.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Tell me a fun fact about {random_city}",
+                },
+            ],
+        )
+
+        fun_fact = response["choices"][0]["message"]["content"]
+        # Store the fun fact in our state
+        self.state["fun_fact"] = fun_fact
+        return fun_fact
+
+
+
+flow = ExampleFlow()
+result = flow.kickoff()
+
+print(f"Generated fun fact: {result}")
+```
+
+In the above example, we have created a simple Flow that generates a random city using OpenAI and then generates a fun fact about that city. The Flow consists of two tasks: `generate_city` and `generate_fun_fact`. The `generate_city` task is the starting point of the Flow, and the `generate_fun_fact` task listens for the output of the `generate_city` task.
+
+Each Flow instance automatically receives a unique identifier (UUID) in its state, which helps track and manage flow executions. The state can also store additional data (like the generated city and fun fact) that persists throughout the flow's execution.
+
+When you run the Flow, it will:
+1. Generate a unique ID for the flow state
+2. Generate a random city and store it in the state
+3. Generate a fun fact about that city and store it in the state
+4. Print the results to the console
+
+The state's unique ID and stored data can be useful for tracking flow executions and maintaining context between tasks.
+
+**Note:** Ensure you have set up your `.env` file to store your `OPENAI_API_KEY`. This key is necessary for authenticating requests to the OpenAI API.
+
+### @start()
+
+The `@start()` decorator is used to mark a method as the starting point of a Flow. When a Flow is started, all the methods decorated with `@start()` are executed in parallel. You can have multiple start methods in a Flow, and they will all be executed when the Flow is started.
+
+### @listen()
+
+The `@listen()` decorator is used to mark a method as a listener for the output of another task in the Flow. The method decorated with `@listen()` will be executed when the specified task emits an output. The method can access the output of the task it is listening to as an argument.
+
+#### Usage
+
+The `@listen()` decorator can be used in several ways:
+
+1. **Listening to a Method by Name**: You can pass the name of the method you want to listen to as a string. When that method completes, the listener method will be triggered.
+
+   ```python Code
+   @listen("generate_city")
+   def generate_fun_fact(self, random_city):
+       # Implementation
+   ```
+
+2. **Listening to a Method Directly**: You can pass the method itself. When that method completes, the listener method will be triggered.
+   ```python Code
+   @listen(generate_city)
+   def generate_fun_fact(self, random_city):
+       # Implementation
+   ```
+
+### Flow Output
+
+Accessing and handling the output of a Flow is essential for integrating your AI workflows into larger applications or systems. CrewAI Flows provide straightforward mechanisms to retrieve the final output, access intermediate results, and manage the overall state of your Flow.
+
+#### Retrieving the Final Output
+
+When you run a Flow, the final output is determined by the last method that completes. The `kickoff()` method returns the output of this final method.
+
+Here's how you can access the final output:
+
+<CodeGroup>
+```python Code
+from crewai.flow.flow import Flow, listen, start
+
+class OutputExampleFlow(Flow):
+    @start()
+    def first_method(self):
+        return "Output from first_method"
+
+    @listen(first_method)
+    def second_method(self, first_output):
+        return f"Second method received: {first_output}"
+
+
+flow = OutputExampleFlow()
+final_output = flow.kickoff()
+
+print("---- Final Output ----")
+print(final_output)
+````
+
+```text Output
+---- Final Output ----
+Second method received: Output from first_method
+````
+
+</CodeGroup>
+
+In this example, the `second_method` is the last method to complete, so its output will be the final output of the Flow.
+The `kickoff()` method will return the final output, which is then printed to the console.
+
+#### Accessing and Updating State
+
+In addition to retrieving the final output, you can also access and update the state within your Flow. The state can be used to store and share data between different methods in the Flow. After the Flow has run, you can access the state to retrieve any information that was added or updated during the execution.
+
+Here's an example of how to update and access the state:
+
+<CodeGroup>
+
+```python Code
+from crewai.flow.flow import Flow, listen, start
+from pydantic import BaseModel
+
+class ExampleState(BaseModel):
+    counter: int = 0
+    message: str = ""
+
+class StateExampleFlow(Flow[ExampleState]):
+
+    @start()
+    def first_method(self):
+        self.state.message = "Hello from first_method"
+        self.state.counter += 1
+
+    @listen(first_method)
+    def second_method(self):
+        self.state.message += " - updated by second_method"
+        self.state.counter += 1
+        return self.state.message
+
+flow = StateExampleFlow()
+final_output = flow.kickoff()
+print(f"Final Output: {final_output}")
+print("Final State:")
+print(flow.state)
+```
+
+```text Output
+Final Output: Hello from first_method - updated by second_method
+Final State:
+counter=2 message='Hello from first_method - updated by second_method'
+```
+
+</CodeGroup>
+
+In this example, the state is updated by both `first_method` and `second_method`.
+After the Flow has run, you can access the final state to see the updates made by these methods.
+
+By ensuring that the final method's output is returned and providing access to the state, CrewAI Flows make it easy to integrate the results of your AI workflows into larger applications or systems,
+while also maintaining and accessing the state throughout the Flow's execution.
+
+## Flow State Management
+
+Managing state effectively is crucial for building reliable and maintainable AI workflows. CrewAI Flows provides robust mechanisms for both unstructured and structured state management,
+allowing developers to choose the approach that best fits their application's needs.
+
+### Unstructured State Management
+
+In unstructured state management, all state is stored in the `state` attribute of the `Flow` class.
+This approach offers flexibility, enabling developers to add or modify state attributes on the fly without defining a strict schema.
+Even with unstructured states, CrewAI Flows automatically generates and maintains a unique identifier (UUID) for each state instance.
+
+```python Code
+from crewai.flow.flow import Flow, listen, start
+
+class UnstructuredExampleFlow(Flow):
+
+    @start()
+    def first_method(self):
+        # The state automatically includes an 'id' field
+        print(f"State ID: {self.state['id']}")
+        self.state['counter'] = 0
+        self.state['message'] = "Hello from structured flow"
+
+    @listen(first_method)
+    def second_method(self):
+        self.state['counter'] += 1
+        self.state['message'] += " - updated"
+
+    @listen(second_method)
+    def third_method(self):
+        self.state['counter'] += 1
+        self.state['message'] += " - updated again"
+
+        print(f"State after third_method: {self.state}")
+
+
+flow = UnstructuredExampleFlow()
+flow.kickoff()
+```
+
+**Note:** The `id` field is automatically generated and preserved throughout the flow's execution. You don't need to manage or set it manually, and it will be maintained even when updating the state with new data.
+
+**Key Points:**
+
+- **Flexibility:** You can dynamically add attributes to `self.state` without predefined constraints.
+- **Simplicity:** Ideal for straightforward workflows where state structure is minimal or varies significantly.
+
+### Structured State Management
+
+Structured state management leverages predefined schemas to ensure consistency and type safety across the workflow.
+By using models like Pydantic's `BaseModel`, developers can define the exact shape of the state, enabling better validation and auto-completion in development environments.
+
+Each state in CrewAI Flows automatically receives a unique identifier (UUID) to help track and manage state instances. This ID is automatically generated and managed by the Flow system.
+
+```python Code
+from crewai.flow.flow import Flow, listen, start
+from pydantic import BaseModel
+
+
+class ExampleState(BaseModel):
+    # Note: 'id' field is automatically added to all states
+    counter: int = 0
+    message: str = ""
+
+
+class StructuredExampleFlow(Flow[ExampleState]):
+
+    @start()
+    def first_method(self):
+        # Access the auto-generated ID if needed
+        print(f"State ID: {self.state.id}")
+        self.state.message = "Hello from structured flow"
+
+    @listen(first_method)
+    def second_method(self):
+        self.state.counter += 1
+        self.state.message += " - updated"
+
+    @listen(second_method)
+    def third_method(self):
+        self.state.counter += 1
+        self.state.message += " - updated again"
+
+        print(f"State after third_method: {self.state}")
+
+
+flow = StructuredExampleFlow()
+flow.kickoff()
+```
+
+**Key Points:**
+
+- **Defined Schema:** `ExampleState` clearly outlines the state structure, enhancing code readability and maintainability.
+- **Type Safety:** Leveraging Pydantic ensures that state attributes adhere to the specified types, reducing runtime errors.
+- **Auto-Completion:** IDEs can provide better auto-completion and error checking based on the defined state model.
+
+### Choosing Between Unstructured and Structured State Management
+
+- **Use Unstructured State Management when:**
+
+  - The workflow's state is simple or highly dynamic.
+  - Flexibility is prioritized over strict state definitions.
+  - Rapid prototyping is required without the overhead of defining schemas.
+
+- **Use Structured State Management when:**
+  - The workflow requires a well-defined and consistent state structure.
+  - Type safety and validation are important for your application's reliability.
+  - You want to leverage IDE features like auto-completion and type checking for better developer experience.
+
+By providing both unstructured and structured state management options, CrewAI Flows empowers developers to build AI workflows that are both flexible and robust, catering to a wide range of application requirements.
+
+## Flow Persistence
+
+The @persist decorator enables automatic state persistence in CrewAI Flows, allowing you to maintain flow state across restarts or different workflow executions. This decorator can be applied at either the class level or method level, providing flexibility in how you manage state persistence.
+
+### Class-Level Persistence
+
+When applied at the class level, the @persist decorator automatically persists all flow method states:
+
+```python
+@persist  # Using SQLiteFlowPersistence by default
+class MyFlow(Flow[MyState]):
+    @start()
+    def initialize_flow(self):
+        # This method will automatically have its state persisted
+        self.state.counter = 1
+        print("Initialized flow. State ID:", self.state.id)
+
+    @listen(initialize_flow)
+    def next_step(self):
+        # The state (including self.state.id) is automatically reloaded
+        self.state.counter += 1
+        print("Flow state is persisted. Counter:", self.state.counter)
+```
+
+### Method-Level Persistence
+
+For more granular control, you can apply @persist to specific methods:
+
+```python
+class AnotherFlow(Flow[dict]):
+    @persist  # Persists only this method's state
+    @start()
+    def begin(self):
+        if "runs" not in self.state:
+            self.state["runs"] = 0
+        self.state["runs"] += 1
+        print("Method-level persisted runs:", self.state["runs"])
+```
+
+### How It Works
+
+1. **Unique State Identification**
+   - Each flow state automatically receives a unique UUID
+   - The ID is preserved across state updates and method calls
+   - Supports both structured (Pydantic BaseModel) and unstructured (dictionary) states
+
+2. **Default SQLite Backend**
+   - SQLiteFlowPersistence is the default storage backend
+   - States are automatically saved to a local SQLite database
+   - Robust error handling ensures clear messages if database operations fail
+
+3. **Error Handling**
+   - Comprehensive error messages for database operations
+   - Automatic state validation during save and load
+   - Clear feedback when persistence operations encounter issues
+
+### Important Considerations
+
+- **State Types**: Both structured (Pydantic BaseModel) and unstructured (dictionary) states are supported
+- **Automatic ID**: The `id` field is automatically added if not present
+- **State Recovery**: Failed or restarted flows can automatically reload their previous state
+- **Custom Implementation**: You can provide your own FlowPersistence implementation for specialized storage needs
+
+### Technical Advantages
+
+1. **Precise Control Through Low-Level Access**
+   - Direct access to persistence operations for advanced use cases
+   - Fine-grained control via method-level persistence decorators
+   - Built-in state inspection and debugging capabilities
+   - Full visibility into state changes and persistence operations
+
+2. **Enhanced Reliability**
+   - Automatic state recovery after system failures or restarts
+   - Transaction-based state updates for data integrity
+   - Comprehensive error handling with clear error messages
+   - Robust validation during state save and load operations
+
+3. **Extensible Architecture**
+   - Customizable persistence backend through FlowPersistence interface
+   - Support for specialized storage solutions beyond SQLite
+   - Compatible with both structured (Pydantic) and unstructured (dict) states
+   - Seamless integration with existing CrewAI flow patterns
+
+The persistence system's architecture emphasizes technical precision and customization options, allowing developers to maintain full control over state management while benefiting from built-in reliability features.
+
+## Flow Control
+
+### Conditional Logic: `or`
+
+The `or_` function in Flows allows you to listen to multiple methods and trigger the listener method when any of the specified methods emit an output.
+
+<CodeGroup>
+
+```python Code
+from crewai.flow.flow import Flow, listen, or_, start
+
+class OrExampleFlow(Flow):
+
+    @start()
+    def start_method(self):
+        return "Hello from the start method"
+
+    @listen(start_method)
+    def second_method(self):
+        return "Hello from the second method"
+
+    @listen(or_(start_method, second_method))
+    def logger(self, result):
+        print(f"Logger: {result}")
+
+
+
+flow = OrExampleFlow()
+flow.kickoff()
+```
+
+```text Output
+Logger: Hello from the start method
+Logger: Hello from the second method
+```
+
+</CodeGroup>
+
+When you run this Flow, the `logger` method will be triggered by the output of either the `start_method` or the `second_method`.
+The `or_` function is used to listen to multiple methods and trigger the listener method when any of the specified methods emit an output.
+
+### Conditional Logic: `and`
+
+The `and_` function in Flows allows you to listen to multiple methods and trigger the listener method only when all the specified methods emit an output.
+
+<CodeGroup>
+
+```python Code
+from crewai.flow.flow import Flow, and_, listen, start
+
+class AndExampleFlow(Flow):
+
+    @start()
+    def start_method(self):
+        self.state["greeting"] = "Hello from the start method"
+
+    @listen(start_method)
+    def second_method(self):
+        self.state["joke"] = "What do computers eat? Microchips."
+
+    @listen(and_(start_method, second_method))
+    def logger(self):
+        print("---- Logger ----")
+        print(self.state)
+
+flow = AndExampleFlow()
+flow.kickoff()
+```
+
+```text Output
+---- Logger ----
+{'greeting': 'Hello from the start method', 'joke': 'What do computers eat? Microchips.'}
+```
+
+</CodeGroup>
+
+When you run this Flow, the `logger` method will be triggered only when both the `start_method` and the `second_method` emit an output.
+The `and_` function is used to listen to multiple methods and trigger the listener method only when all the specified methods emit an output.
+
+### Router
+
+The `@router()` decorator in Flows allows you to define conditional routing logic based on the output of a method.
+You can specify different routes based on the output of the method, allowing you to control the flow of execution dynamically.
+
+<CodeGroup>
+
+```python Code
+import random
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+class ExampleState(BaseModel):
+    success_flag: bool = False
+
+class RouterFlow(Flow[ExampleState]):
+
+    @start()
+    def start_method(self):
+        print("Starting the structured flow")
+        random_boolean = random.choice([True, False])
+        self.state.success_flag = random_boolean
+
+    @router(start_method)
+    def second_method(self):
+        if self.state.success_flag:
+            return "success"
+        else:
+            return "failed"
+
+    @listen("success")
+    def third_method(self):
+        print("Third method running")
+
+    @listen("failed")
+    def fourth_method(self):
+        print("Fourth method running")
+
+
+flow = RouterFlow()
+flow.kickoff()
+```
+
+```text Output
+Starting the structured flow
+Third method running
+Fourth method running
+```
+
+</CodeGroup>
+
+In the above example, the `start_method` generates a random boolean value and sets it in the state.
+The `second_method` uses the `@router()` decorator to define conditional routing logic based on the value of the boolean.
+If the boolean is `True`, the method returns `"success"`, and if it is `False`, the method returns `"failed"`.
+The `third_method` and `fourth_method` listen to the output of the `second_method` and execute based on the returned value.
+
+When you run this Flow, the output will change based on the random boolean value generated by the `start_method`.
+
+## Adding Crews to Flows
+
+Creating a flow with multiple crews in CrewAI is straightforward.
+
+You can generate a new CrewAI project that includes all the scaffolding needed to create a flow with multiple crews by running the following command:
+
+```bash
+crewai create flow name_of_flow
+```
+
+This command will generate a new CrewAI project with the necessary folder structure. The generated project includes a prebuilt crew called `poem_crew` that is already working. You can use this crew as a template by copying, pasting, and editing it to create other crews.
+
+### Folder Structure
+
+After running the `crewai create flow name_of_flow` command, you will see a folder structure similar to the following:
+
+| Directory/File         | Description                                                        |
+| :--------------------- | :----------------------------------------------------------------- |
+| `name_of_flow/`        | Root directory for the flow.                                       |
+| â”œâ”€â”€ `crews/`           | Contains directories for specific crews.                           |
+| â”‚ â””â”€â”€ `poem_crew/`     | Directory for the "poem_crew" with its configurations and scripts. |
+| â”‚ â”œâ”€â”€ `config/`        | Configuration files directory for the "poem_crew".                 |
+| â”‚ â”‚ â”œâ”€â”€ `agents.yaml`  | YAML file defining the agents for "poem_crew".                     |
+| â”‚ â”‚ â””â”€â”€ `tasks.yaml`   | YAML file defining the tasks for "poem_crew".                      |
+| â”‚ â”œâ”€â”€ `poem_crew.py`   | Script for "poem_crew" functionality.                              |
+| â”œâ”€â”€ `tools/`           | Directory for additional tools used in the flow.                   |
+| â”‚ â””â”€â”€ `custom_tool.py` | Custom tool implementation.                                        |
+| â”œâ”€â”€ `main.py`          | Main script for running the flow.                                  |
+| â”œâ”€â”€ `README.md`        | Project description and instructions.                              |
+| â”œâ”€â”€ `pyproject.toml`   | Configuration file for project dependencies and settings.          |
+| â””â”€â”€ `.gitignore`       | Specifies files and directories to ignore in version control.      |
+
+### Building Your Crews
+
+In the `crews` folder, you can define multiple crews. Each crew will have its own folder containing configuration files and the crew definition file. For example, the `poem_crew` folder contains:
+
+- `config/agents.yaml`: Defines the agents for the crew.
+- `config/tasks.yaml`: Defines the tasks for the crew.
+- `poem_crew.py`: Contains the crew definition, including agents, tasks, and the crew itself.
+
+You can copy, paste, and edit the `poem_crew` to create other crews.
+
+### Connecting Crews in `main.py`
+
+The `main.py` file is where you create your flow and connect the crews together. You can define your flow by using the `Flow` class and the decorators `@start` and `@listen` to specify the flow of execution.
+
+Here's an example of how you can connect the `poem_crew` in the `main.py` file:
+
+```python Code
+#!/usr/bin/env python
+from random import randint
+
+from pydantic import BaseModel
+from crewai.flow.flow import Flow, listen, start
+from .crews.poem_crew.poem_crew import PoemCrew
+
+class PoemState(BaseModel):
+    sentence_count: int = 1
+    poem: str = ""
+
+class PoemFlow(Flow[PoemState]):
+
+    @start()
+    def generate_sentence_count(self):
+        print("Generating sentence count")
+        self.state.sentence_count = randint(1, 5)
+
+    @listen(generate_sentence_count)
+    def generate_poem(self):
+        print("Generating poem")
+        result = PoemCrew().crew().kickoff(inputs={"sentence_count": self.state.sentence_count})
+
+        print("Poem generated", result.raw)
+        self.state.poem = result.raw
+
+    @listen(generate_poem)
+    def save_poem(self):
+        print("Saving poem")
+        with open("poem.txt", "w") as f:
+            f.write(self.state.poem)
+
+def kickoff():
+    poem_flow = PoemFlow()
+    poem_flow.kickoff()
+
+
+def plot():
+    poem_flow = PoemFlow()
+    poem_flow.plot()
+
+if __name__ == "__main__":
+    kickoff()
+```
+
+In this example, the `PoemFlow` class defines a flow that generates a sentence count, uses the `PoemCrew` to generate a poem, and then saves the poem to a file. The flow is kicked off by calling the `kickoff()` method.
+
+### Running the Flow
+
+(Optional) Before running the flow, you can install the dependencies by running:
+
+```bash
+crewai install
+```
+
+Once all of the dependencies are installed, you need to activate the virtual environment by running:
+
+```bash
+source .venv/bin/activate
+```
+
+After activating the virtual environment, you can run the flow by executing one of the following commands:
+
+```bash
+crewai flow kickoff
+```
+
+or
+
+```bash
+uv run kickoff
+```
+
+The flow will execute, and you should see the output in the console.
+
+## Plot Flows
+
+Visualizing your AI workflows can provide valuable insights into the structure and execution paths of your flows. CrewAI offers a powerful visualization tool that allows you to generate interactive plots of your flows, making it easier to understand and optimize your AI workflows.
+
+### What are Plots?
+
+Plots in CrewAI are graphical representations of your AI workflows. They display the various tasks, their connections, and the flow of data between them. This visualization helps in understanding the sequence of operations, identifying bottlenecks, and ensuring that the workflow logic aligns with your expectations.
+
+### How to Generate a Plot
+
+CrewAI provides two convenient methods to generate plots of your flows:
+
+#### Option 1: Using the `plot()` Method
+
+If you are working directly with a flow instance, you can generate a plot by calling the `plot()` method on your flow object. This method will create an HTML file containing the interactive plot of your flow.
+
+```python Code
+# Assuming you have a flow instance
+flow.plot("my_flow_plot")
+```
+
+This will generate a file named `my_flow_plot.html` in your current directory. You can open this file in a web browser to view the interactive plot.
+
+#### Option 2: Using the Command Line
+
+If you are working within a structured CrewAI project, you can generate a plot using the command line. This is particularly useful for larger projects where you want to visualize the entire flow setup.
+
+```bash
+crewai flow plot
+```
+
+This command will generate an HTML file with the plot of your flow, similar to the `plot()` method. The file will be saved in your project directory, and you can open it in a web browser to explore the flow.
+
+### Understanding the Plot
+
+The generated plot will display nodes representing the tasks in your flow, with directed edges indicating the flow of execution. The plot is interactive, allowing you to zoom in and out, and hover over nodes to see additional details.
+
+By visualizing your flows, you can gain a clearer understanding of the workflow's structure, making it easier to debug, optimize, and communicate your AI processes to others.
+
+### Conclusion
+
+Plotting your flows is a powerful feature of CrewAI that enhances your ability to design and manage complex AI workflows. Whether you choose to use the `plot()` method or the command line, generating plots will provide you with a visual representation of your workflows, aiding in both development and presentation.
+
+## Next Steps
+
+If you're interested in exploring additional examples of flows, we have a variety of recommendations in our examples repository. Here are four specific flow examples, each showcasing unique use cases to help you match your current problem type to a specific example:
+
+1. **Email Auto Responder Flow**: This example demonstrates an infinite loop where a background job continually runs to automate email responses. It's a great use case for tasks that need to be performed repeatedly without manual intervention. [View Example](https://github.com/crewAIInc/crewAI-examples/tree/main/email_auto_responder_flow)
+
+2. **Lead Score Flow**: This flow showcases adding human-in-the-loop feedback and handling different conditional branches using the router. It's an excellent example of how to incorporate dynamic decision-making and human oversight into your workflows. [View Example](https://github.com/crewAIInc/crewAI-examples/tree/main/lead-score-flow)
+
+3. **Write a Book Flow**: This example excels at chaining multiple crews together, where the output of one crew is used by another. Specifically, one crew outlines an entire book, and another crew generates chapters based on the outline. Eventually, everything is connected to produce a complete book. This flow is perfect for complex, multi-step processes that require coordination between different tasks. [View Example](https://github.com/crewAIInc/crewAI-examples/tree/main/write_a_book_with_flows)
+
+4. **Meeting Assistant Flow**: This flow demonstrates how to broadcast one event to trigger multiple follow-up actions. For instance, after a meeting is completed, the flow can update a Trello board, send a Slack message, and save the results. It's a great example of handling multiple outcomes from a single event, making it ideal for comprehensive task management and notification systems. [View Example](https://github.com/crewAIInc/crewAI-examples/tree/main/meeting_assistant_flow)
+
+By exploring these examples, you can gain insights into how to leverage CrewAI Flows for various use cases, from automating repetitive tasks to managing complex, multi-step processes with dynamic decision-making and human feedback.
+
+Also, check out our YouTube video on how to use flows in CrewAI below!
+
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/MTb5my6VOT8"
+  title="YouTube video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  allowfullscreen
+></iframe>
+
+
+
+---
+File: /concepts/knowledge.mdx
+---
+
+---
+title: Knowledge
+description: What is knowledge in CrewAI and how to use it.
+icon: book
+---
+
+## What is Knowledge?
+
+Knowledge in CrewAI is a powerful system that allows AI agents to access and utilize external information sources during their tasks.
+Think of it as giving your agents a reference library they can consult while working.
+
+<Info>
+  Key benefits of using Knowledge:
+  - Enhance agents with domain-specific information
+  - Support decisions with real-world data
+  - Maintain context across conversations
+  - Ground responses in factual information
+</Info>
+
+## Supported Knowledge Sources
+
+CrewAI supports various types of knowledge sources out of the box:
+
+<CardGroup cols={2}>
+  <Card title="Text Sources" icon="text">
+    - Raw strings
+    - Text files (.txt)
+    - PDF documents
+  </Card>
+  <Card title="Structured Data" icon="table">
+    - CSV files
+    - Excel spreadsheets
+    - JSON documents
+  </Card>
+</CardGroup>
+
+## Supported Knowledge Parameters
+
+| Parameter                    | Type                                | Required | Description                                                                                                                                           |
+| :--------------------------- | :---------------------------------- | :------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`                  | **List[BaseKnowledgeSource]**        | Yes      | List of knowledge sources that provide content to be stored and queried. Can include PDF, CSV, Excel, JSON, text files, or string content.           |
+| `collection_name`          | **str**                              | No       | Name of the collection where the knowledge will be stored. Used to identify different sets of knowledge. Defaults to "knowledge" if not provided.     |
+| `storage`                  | **Optional[KnowledgeStorage]**       | No       | Custom storage configuration for managing how the knowledge is stored and retrieved. If not provided, a default storage will be created.              |
+
+## Quickstart Example
+
+<Tip>
+For file-Based Knowledge Sources, make sure to place your files in a `knowledge` directory at the root of your project. 
+Also, use relative paths from the `knowledge` directory when creating the source.
+</Tip>
+
+Here's an example using string-based knowledge:
+
+```python Code
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
+
+# Create a knowledge source
+content = "Users name is John. He is 30 years old and lives in San Francisco."
+string_source = StringKnowledgeSource(
+    content=content,
+)
+
+# Create an LLM with a temperature of 0 to ensure deterministic outputs
+llm = LLM(model="gpt-4o-mini", temperature=0)
+
+# Create an agent with the knowledge store
+agent = Agent(
+    role="About User",
+    goal="You know everything about the user.",
+    backstory="""You are a master at understanding people and their preferences.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm,
+)
+task = Task(
+    description="Answer the following questions about the user: {question}",
+    expected_output="An answer to the question.",
+    agent=agent,
+)
+
+crew = Crew(
+    agents=[agent],
+    tasks=[task],
+    verbose=True,
+    process=Process.sequential,
+    knowledge_sources=[string_source], # Enable knowledge by adding the sources here. You can also add more sources to the sources list.
+)
+
+result = crew.kickoff(inputs={"question": "What city does John live in and how old is he?"})
+```
+
+
+Here's another example with the `CrewDoclingSource`. The CrewDoclingSource is actually quite versatile and can handle multiple file formats including MD, PDF, DOCX, HTML, and more. 
+
+<Note>
+  You need to install `docling` for the following example to work: `uv add docling`
+</Note>
+
+
+
+```python Code
+from crewai import LLM, Agent, Crew, Process, Task
+from crewai.knowledge.source.crew_docling_source import CrewDoclingSource
+
+# Create a knowledge source
+content_source = CrewDoclingSource(
+    file_paths=[
+        "https://lilianweng.github.io/posts/2024-11-28-reward-hacking",
+        "https://lilianweng.github.io/posts/2024-07-07-hallucination",
+    ],
+)
+
+# Create an LLM with a temperature of 0 to ensure deterministic outputs
+llm = LLM(model="gpt-4o-mini", temperature=0)
+
+# Create an agent with the knowledge store
+agent = Agent(
+    role="About papers",
+    goal="You know everything about the papers.",
+    backstory="""You are a master at understanding papers and their content.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm,
+)
+task = Task(
+    description="Answer the following questions about the papers: {question}",
+    expected_output="An answer to the question.",
+    agent=agent,
+)
+
+crew = Crew(
+    agents=[agent],
+    tasks=[task],
+    verbose=True,
+    process=Process.sequential,
+    knowledge_sources=[
+        content_source
+    ],  # Enable knowledge by adding the sources here. You can also add more sources to the sources list.
+)
+
+result = crew.kickoff(
+    inputs={
+        "question": "What is the reward hacking paper about? Be sure to provide sources."
+    }
+)
+```
+
+## More Examples
+
+Here are examples of how to use different types of knowledge sources:
+
+### Text File Knowledge Source
+```python
+from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
+
+# Create a text file knowledge source
+text_source = TextFileKnowledgeSource(
+    file_paths=["document.txt", "another.txt"]
+)
+
+# Create crew with text file source on agents or crew level
+agent = Agent(
+    ...
+    knowledge_sources=[text_source]
+)
+
+crew = Crew(
+    ...
+    knowledge_sources=[text_source]
+)
+```
+
+### PDF Knowledge Source
+```python
+from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
+
+# Create a PDF knowledge source
+pdf_source = PDFKnowledgeSource(
+    file_paths=["document.pdf", "another.pdf"]
+)
+
+# Create crew with PDF knowledge source on agents or crew level
+agent = Agent(
+    ...
+    knowledge_sources=[pdf_source]
+)
+
+crew = Crew(
+    ...
+    knowledge_sources=[pdf_source]
+)
+```
+
+### CSV Knowledge Source
+```python
+from crewai.knowledge.source.csv_knowledge_source import CSVKnowledgeSource
+
+# Create a CSV knowledge source
+csv_source = CSVKnowledgeSource(
+    file_paths=["data.csv"]
+)
+
+# Create crew with CSV knowledge source or on agent level
+agent = Agent(
+    ...
+    knowledge_sources=[csv_source]
+)
+
+crew = Crew(
+    ...
+    knowledge_sources=[csv_source]
+)
+```
+
+### Excel Knowledge Source
+```python
+from crewai.knowledge.source.excel_knowledge_source import ExcelKnowledgeSource
+
+# Create an Excel knowledge source
+excel_source = ExcelKnowledgeSource(
+    file_paths=["spreadsheet.xlsx"]
+)
+
+# Create crew with Excel knowledge source on agents or crew level
+agent = Agent(
+    ...
+    knowledge_sources=[excel_source]
+)
+
+crew = Crew(
+    ...
+    knowledge_sources=[excel_source]
+)
+```
+
+### JSON Knowledge Source
+```python
+from crewai.knowledge.source.json_knowledge_source import JSONKnowledgeSource
+
+# Create a JSON knowledge source
+json_source = JSONKnowledgeSource(
+    file_paths=["data.json"]
+)
+
+# Create crew with JSON knowledge source on agents or crew level
+agent = Agent(
+    ...
+    knowledge_sources=[json_source]
+)
+
+crew = Crew(
+    ...
+    knowledge_sources=[json_source]
+)
+```
+
+## Knowledge Configuration
+
+### Chunking Configuration
+
+Knowledge sources automatically chunk content for better processing. 
+You can configure chunking behavior in your knowledge sources:
+
+```python
+from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
+
+source = StringKnowledgeSource(
+    content="Your content here",
+    chunk_size=4000,      # Maximum size of each chunk (default: 4000)
+    chunk_overlap=200     # Overlap between chunks (default: 200)
+)
+```
+
+The chunking configuration helps in:
+- Breaking down large documents into manageable pieces
+- Maintaining context through chunk overlap
+- Optimizing retrieval accuracy
+
+### Embeddings Configuration
+
+You can also configure the embedder for the knowledge store. 
+This is useful if you want to use a different embedder for the knowledge store than the one used for the agents.
+The `embedder` parameter supports various embedding model providers that include:
+- `openai`: OpenAI's embedding models
+- `google`: Google's text embedding models
+- `azure`: Azure OpenAI embeddings
+- `ollama`: Local embeddings with Ollama
+- `vertexai`: Google Cloud VertexAI embeddings
+- `cohere`: Cohere's embedding models
+- `voyageai`: VoyageAI's embedding models
+- `bedrock`: AWS Bedrock embeddings
+- `huggingface`: Hugging Face models
+- `watson`: IBM Watson embeddings
+
+Here's an example of how to configure the embedder for the knowledge store using Google's `text-embedding-004` model:
+<CodeGroup>
+```python Example
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
+import os
+
+# Get the GEMINI API key
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+# Create a knowledge source
+content = "Users name is John. He is 30 years old and lives in San Francisco."
+string_source = StringKnowledgeSource(
+    content=content,
+)
+
+# Create an LLM with a temperature of 0 to ensure deterministic outputs
+gemini_llm = LLM(
+    model="gemini/gemini-1.5-pro-002",
+    api_key=GEMINI_API_KEY,
+    temperature=0,
+)
+
+# Create an agent with the knowledge store
+agent = Agent(
+    role="About User",
+    goal="You know everything about the user.",
+    backstory="""You are a master at understanding people and their preferences.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=gemini_llm,
+    embedder={
+        "provider": "google",
+        "config": {
+            "model": "models/text-embedding-004",
+            "api_key": GEMINI_API_KEY,
+        }
+    }
+)
+
+task = Task(
+    description="Answer the following questions about the user: {question}",
+    expected_output="An answer to the question.",
+    agent=agent,
+)
+
+crew = Crew(
+    agents=[agent],
+    tasks=[task],
+    verbose=True,
+    process=Process.sequential,
+    knowledge_sources=[string_source],
+    embedder={
+        "provider": "google",
+        "config": {
+            "model": "models/text-embedding-004",
+            "api_key": GEMINI_API_KEY,
+        }
+    }
+)
+
+result = crew.kickoff(inputs={"question": "What city does John live in and how old is he?"})
+```
+```text Output
+# Agent: About User
+## Task: Answer the following questions about the user: What city does John live in and how old is he?
+
+# Agent: About User
+## Final Answer: 
+John is 30 years old and lives in San Francisco.
+```
+</CodeGroup>
+## Clearing Knowledge
+
+If you need to clear the knowledge stored in CrewAI, you can use the `crewai reset-memories` command with the `--knowledge` option.
+
+```bash Command
+crewai reset-memories --knowledge
+```
+
+This is useful when you've updated your knowledge sources and want to ensure that the agents are using the most recent information.
+
+## Agent-Specific Knowledge
+
+While knowledge can be provided at the crew level using `crew.knowledge_sources`, individual agents can also have their own knowledge sources using the `knowledge_sources` parameter:
+
+```python Code
+from crewai import Agent, Task, Crew
+from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
+
+# Create agent-specific knowledge about a product
+product_specs = StringKnowledgeSource(
+    content="""The XPS 13 laptop features:
+    - 13.4-inch 4K display
+    - Intel Core i7 processor
+    - 16GB RAM
+    - 512GB SSD storage
+    - 12-hour battery life""",
+    metadata={"category": "product_specs"}
+)
+
+# Create a support agent with product knowledge
+support_agent = Agent(
+    role="Technical Support Specialist",
+    goal="Provide accurate product information and support.",
+    backstory="You are an expert on our laptop products and specifications.",
+    knowledge_sources=[product_specs]  # Agent-specific knowledge
+)
+
+# Create a task that requires product knowledge
+support_task = Task(
+    description="Answer this customer question: {question}",
+    agent=support_agent
+)
+
+# Create and run the crew
+crew = Crew(
+    agents=[support_agent],
+    tasks=[support_task]
+)
+
+# Get answer about the laptop's specifications
+result = crew.kickoff(
+    inputs={"question": "What is the storage capacity of the XPS 13?"}
+)
+```
+
+<Info>
+  Benefits of agent-specific knowledge:
+  - Give agents specialized information for their roles
+  - Maintain separation of concerns between agents
+  - Combine with crew-level knowledge for layered information access
+</Info>
+
+## Custom Knowledge Sources
+
+CrewAI allows you to create custom knowledge sources for any type of data by extending the `BaseKnowledgeSource` class. Let's create a practical example that fetches and processes space news articles.
+
+#### Space News Knowledge Source Example
+
+<CodeGroup>
+
+```python Code
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai.knowledge.source.base_knowledge_source import BaseKnowledgeSource
+import requests
+from datetime import datetime
+from typing import Dict, Any
+from pydantic import BaseModel, Field
+
+class SpaceNewsKnowledgeSource(BaseKnowledgeSource):
+    """Knowledge source that fetches data from Space News API."""
+
+    api_endpoint: str = Field(description="API endpoint URL")
+    limit: int = Field(default=10, description="Number of articles to fetch")
+
+    def load_content(self) -> Dict[Any, str]:
+        """Fetch and format space news articles."""
+        try:
+            response = requests.get(
+                f"{self.api_endpoint}?limit={self.limit}"
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            articles = data.get('results', [])
+
+            formatted_data = self._format_articles(articles)
+            return {self.api_endpoint: formatted_data}
+        except Exception as e:
+            raise ValueError(f"Failed to fetch space news: {str(e)}")
+
+    def _format_articles(self, articles: list) -> str:
+        """Format articles into readable text."""
+        formatted = "Space News Articles:\n\n"
+        for article in articles:
+            formatted += f"""
+                Title: {article['title']}
+                Published: {article['published_at']}
+                Summary: {article['summary']}
+                News Site: {article['news_site']}
+                URL: {article['url']}
+                -------------------"""
+        return formatted
+
+    def add(self) -> None:
+        """Process and store the articles."""
+        content = self.load_content()
+        for _, text in content.items():
+            chunks = self._chunk_text(text)
+            self.chunks.extend(chunks)
+
+        self._save_documents()
+
+# Create knowledge source
+recent_news = SpaceNewsKnowledgeSource(
+    api_endpoint="https://api.spaceflightnewsapi.net/v4/articles",
+    limit=10,
+)
+
+# Create specialized agent
+space_analyst = Agent(
+    role="Space News Analyst",
+    goal="Answer questions about space news accurately and comprehensively",
+    backstory="""You are a space industry analyst with expertise in space exploration,
+    satellite technology, and space industry trends. You excel at answering questions
+    about space news and providing detailed, accurate information.""",
+    knowledge_sources=[recent_news],
+    llm=LLM(model="gpt-4", temperature=0.0)
+)
+
+# Create task that handles user questions
+analysis_task = Task(
+    description="Answer this question about space news: {user_question}",
+    expected_output="A detailed answer based on the recent space news articles",
+    agent=space_analyst
+)
+
+# Create and run the crew
+crew = Crew(
+    agents=[space_analyst],
+    tasks=[analysis_task],
+    verbose=True,
+    process=Process.sequential
+)
+
+# Example usage
+result = crew.kickoff(
+    inputs={"user_question": "What are the latest developments in space exploration?"}
+)
+```
+
+```output Output
+# Agent: Space News Analyst
+## Task: Answer this question about space news: What are the latest developments in space exploration?
+
+
+# Agent: Space News Analyst
+## Final Answer:
+The latest developments in space exploration, based on recent space news articles, include the following:
+
+1. SpaceX has received the final regulatory approvals to proceed with the second integrated Starship/Super Heavy launch, scheduled for as soon as the morning of Nov. 17, 2023. This is a significant step in SpaceX's ambitious plans for space exploration and colonization. [Source: SpaceNews](https://spacenews.com/starship-cleared-for-nov-17-launch/)
+
+2. SpaceX has also informed the US Federal Communications Commission (FCC) that it plans to begin launching its first next-generation Starlink Gen2 satellites. This represents a major upgrade to the Starlink satellite internet service, which aims to provide high-speed internet access worldwide. [Source: Teslarati](https://www.teslarati.com/spacex-first-starlink-gen2-satellite-launch-2022/)
+
+3. AI startup Synthetaic has raised $15 million in Series B funding. The company uses artificial intelligence to analyze data from space and air sensors, which could have significant applications in space exploration and satellite technology. [Source: SpaceNews](https://spacenews.com/ai-startup-synthetaic-raises-15-million-in-series-b-funding/)
+
+4. The Space Force has formally established a unit within the U.S. Indo-Pacific Command, marking a permanent presence in the Indo-Pacific region. This could have significant implications for space security and geopolitics. [Source: SpaceNews](https://spacenews.com/space-force-establishes-permanent-presence-in-indo-pacific-region/)
+
+5. Slingshot Aerospace, a space tracking and data analytics company, is expanding its network of ground-based optical telescopes to increase coverage of low Earth orbit. This could improve our ability to track and analyze objects in low Earth orbit, including satellites and space debris. [Source: SpaceNews](https://spacenews.com/slingshots-space-tracking-network-to-extend-coverage-of-low-earth-orbit/)
+
+6. The National Natural Science Foundation of China has outlined a five-year project for researchers to study the assembly of ultra-large spacecraft. This could lead to significant advancements in spacecraft technology and space exploration capabilities. [Source: SpaceNews](https://spacenews.com/china-researching-challenges-of-kilometer-scale-ultra-large-spacecraft/)
+
+7. The Center for AEroSpace Autonomy Research (CAESAR) at Stanford University is focusing on spacecraft autonomy. The center held a kickoff event on May 22, 2024, to highlight the industry, academia, and government collaboration it seeks to foster. This could lead to significant advancements in autonomous spacecraft technology. [Source: SpaceNews](https://spacenews.com/stanford-center-focuses-on-spacecraft-autonomy/)
+```
+
+</CodeGroup>
+#### Key Components Explained
+
+1. **Custom Knowledge Source (`SpaceNewsKnowledgeSource`)**:
+
+   - Extends `BaseKnowledgeSource` for integration with CrewAI
+   - Configurable API endpoint and article limit
+   - Implements three key methods:
+     - `load_content()`: Fetches articles from the API
+     - `_format_articles()`: Structures the articles into readable text
+     - `add()`: Processes and stores the content
+
+2. **Agent Configuration**:
+
+   - Specialized role as a Space News Analyst
+   - Uses the knowledge source to access space news
+
+3. **Task Setup**:
+
+   - Takes a user question as input through `{user_question}`
+   - Designed to provide detailed answers based on the knowledge source
+
+4. **Crew Orchestration**:
+   - Manages the workflow between agent and task
+   - Handles input/output through the kickoff method
+
+This example demonstrates how to:
+
+- Create a custom knowledge source that fetches real-time data
+- Process and format external data for AI consumption
+- Use the knowledge source to answer specific user questions
+- Integrate everything seamlessly with CrewAI's agent system
+
+#### About the Spaceflight News API
+
+The example uses the [Spaceflight News API](https://api.spaceflightnewsapi.net/v4/docs/), which:
+
+- Provides free access to space-related news articles
+- Requires no authentication
+- Returns structured data about space news
+- Supports pagination and filtering
+
+You can customize the API query by modifying the endpoint URL:
+
+```python
+# Fetch more articles
+recent_news = SpaceNewsKnowledgeSource(
+    api_endpoint="https://api.spaceflightnewsapi.net/v4/articles",
+    limit=20,  # Increase the number of articles
+)
+
+# Add search parameters
+recent_news = SpaceNewsKnowledgeSource(
+    api_endpoint="https://api.spaceflightnewsapi.net/v4/articles?search=NASA", # Search for NASA news
+    limit=10,
+)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Content Organization">
+    - Keep chunk sizes appropriate for your content type
+    - Consider content overlap for context preservation
+    - Organize related information into separate knowledge sources
+  </Accordion>
+
+  <Accordion title="Performance Tips">
+    - Adjust chunk sizes based on content complexity 
+    - Configure appropriate embedding models
+    - Consider using local embedding providers for faster processing
+  </Accordion>
+</AccordionGroup>
+
+
+
+---
+File: /concepts/langchain-tools.mdx
+---
+
+---
+title: Using LangChain Tools
+description: Learn how to integrate LangChain tools with CrewAI agents to enhance search-based queries and more.
+icon: link
+---
+
+## Using LangChain Tools
+
+<Info>
+    CrewAI seamlessly integrates with LangChain's comprehensive [list of tools](https://python.langchain.com/docs/integrations/tools/), all of which can be used with CrewAI.
+</Info>
+
+```python Code
+import os
+from dotenv import load_dotenv
+from crewai import Agent, Task, Crew
+from crewai.tools import BaseTool
+from pydantic import Field
+from langchain_community.utilities import GoogleSerperAPIWrapper
+
+# Set up your SERPER_API_KEY key in an .env file, eg:
+# SERPER_API_KEY=<your api key>
+load_dotenv()
+
+search = GoogleSerperAPIWrapper()
+
+class SearchTool(BaseTool):
+    name: str = "Search"
+    description: str = "Useful for search-based queries. Use this to find current information about markets, companies, and trends."
+    search: GoogleSerperAPIWrapper = Field(default_factory=GoogleSerperAPIWrapper)
+
+    def _run(self, query: str) -> str:
+        """Execute the search query and return results"""
+        try:
+            return self.search.run(query)
+        except Exception as e:
+            return f"Error performing search: {str(e)}"
+
+# Create Agents
+researcher = Agent(
+    role='Research Analyst',
+    goal='Gather current market data and trends',
+    backstory="""You are an expert research analyst with years of experience in
+    gathering market intelligence. You're known for your ability to find
+    relevant and up-to-date market information and present it in a clear,
+    actionable format.""",
+    tools=[SearchTool()],
+    verbose=True
+)
+
+# rest of the code ...
+```
+
+## Conclusion
+
+Tools are pivotal in extending the capabilities of CrewAI agents, enabling them to undertake a broad spectrum of tasks and collaborate effectively.
+When building solutions with CrewAI, leverage both custom and existing tools to empower your agents and enhance the AI ecosystem. Consider utilizing error handling, caching mechanisms,
+and the flexibility of tool arguments to optimize your agents' performance and capabilities.
+
+
+
+---
+File: /concepts/llamaindex-tools.mdx
+---
+
+---
+title: Using LlamaIndex Tools
+description: Learn how to integrate LlamaIndex tools with CrewAI agents to enhance search-based queries and more.
+icon: toolbox
+---
+
+## Using LlamaIndex Tools
+
+<Info>
+    CrewAI seamlessly integrates with LlamaIndexâ€™s comprehensive toolkit for RAG (Retrieval-Augmented Generation) and agentic pipelines, enabling advanced search-based queries and more. 
+</Info>
+
+Here are the available built-in tools offered by LlamaIndex.
+
+```python Code
+from crewai import Agent
+from crewai_tools import LlamaIndexTool
+
+# Example 1: Initialize from FunctionTool
+from llama_index.core.tools import FunctionTool
+
+your_python_function = lambda ...: ...
+og_tool = FunctionTool.from_defaults(
+    your_python_function, 
+    name="<name>", 
+    description='<description>'
+)
+tool = LlamaIndexTool.from_tool(og_tool)
+
+# Example 2: Initialize from LlamaHub Tools
+from llama_index.tools.wolfram_alpha import WolframAlphaToolSpec
+wolfram_spec = WolframAlphaToolSpec(app_id="<app_id>")
+wolfram_tools = wolfram_spec.to_tool_list()
+tools = [LlamaIndexTool.from_tool(t) for t in wolfram_tools]
+
+# Example 3: Initialize Tool from a LlamaIndex Query Engine
+query_engine = index.as_query_engine()
+query_tool = LlamaIndexTool.from_query_engine(
+    query_engine,
+    name="Uber 2019 10K Query Tool",
+    description="Use this tool to lookup the 2019 Uber 10K Annual Report"
+)
+
+# Create and assign the tools to an agent
+agent = Agent(
+    role='Research Analyst',
+    goal='Provide up-to-date market analysis',
+    backstory='An expert analyst with a keen eye for market trends.',
+    tools=[tool, *tools, query_tool]
+)
+
+# rest of the code ...
+```
+
+## Steps to Get Started
+
+To effectively use the LlamaIndexTool, follow these steps:
+
+<Steps>
+    <Step title="Package Installation">
+    Make sure that `crewai[tools]` package is installed in your Python environment:
+    <CodeGroup>
+        ```shell Terminal
+        pip install 'crewai[tools]'
+        ```
+    </CodeGroup>
+    </Step>
+    <Step title="Install and Use LlamaIndex">
+    Follow the LlamaIndex documentation [LlamaIndex Documentation](https://docs.llamaindex.ai/) to set up a RAG/agent pipeline.
+    </Step>
+</Steps>
+
+
+---
+File: /concepts/llms.mdx
+---
+
+---
+title: 'LLMs'
+description: 'A comprehensive guide to configuring and using Large Language Models (LLMs) in your CrewAI projects'
+icon: 'microchip-ai'
+---
+
+<Note>
+  CrewAI integrates with multiple LLM providers through LiteLLM, giving you the flexibility to choose the right model for your specific use case. This guide will help you understand how to configure and use different LLM providers in your CrewAI projects.
+</Note>
+
+## What are LLMs?
+
+Large Language Models (LLMs) are the core intelligence behind CrewAI agents. They enable agents to understand context, make decisions, and generate human-like responses. Here's what you need to know:
+
+<CardGroup cols={2}>
+  <Card title="LLM Basics" icon="brain">
+    Large Language Models are AI systems trained on vast amounts of text data. They power the intelligence of your CrewAI agents, enabling them to understand and generate human-like text.
+  </Card>
+  <Card title="Context Window" icon="window">
+    The context window determines how much text an LLM can process at once. Larger windows (e.g., 128K tokens) allow for more context but may be more expensive and slower.
+  </Card>
+  <Card title="Temperature" icon="temperature-three-quarters">
+    Temperature (0.0 to 1.0) controls response randomness. Lower values (e.g., 0.2) produce more focused, deterministic outputs, while higher values (e.g., 0.8) increase creativity and variability.
+  </Card>
+  <Card title="Provider Selection" icon="server">
+    Each LLM provider (e.g., OpenAI, Anthropic, Google) offers different models with varying capabilities, pricing, and features. Choose based on your needs for accuracy, speed, and cost.
+  </Card>
+</CardGroup>
+
+## Setting Up Your LLM
+
+There are three ways to configure LLMs in CrewAI. Choose the method that best fits your workflow:
+
+<Tabs>
+  <Tab title="1. Environment Variables">
+    The simplest way to get started. Set these variables in your environment:
+
+    ```bash
+    # Required: Your API key for authentication
+    OPENAI_API_KEY=<your-api-key>
+
+    # Optional: Default model selection
+    OPENAI_MODEL_NAME=gpt-4o-mini  # Default if not set
+
+    # Optional: Organization ID (if applicable)
+    OPENAI_ORGANIZATION_ID=<your-org-id>
+    ```
+
+    <Warning>
+      Never commit API keys to version control. Use environment files (.env) or your system's secret management.
+    </Warning>
+  </Tab>
+  <Tab title="2. YAML Configuration">
+    Create a YAML file to define your agent configurations. This method is great for version control and team collaboration:
+
+    ```yaml
+    researcher:
+        role: Research Specialist
+        goal: Conduct comprehensive research and analysis
+        backstory: A dedicated research professional with years of experience
+        verbose: true
+        llm: openai/gpt-4o-mini # your model here 
+        # (see provider configuration examples below for more)
+    ```
+
+    <Info>
+      The YAML configuration allows you to:
+      - Version control your agent settings
+      - Easily switch between different models
+      - Share configurations across team members
+      - Document model choices and their purposes
+    </Info>
+  </Tab>
+  <Tab title="3. Direct Code">
+    For maximum flexibility, configure LLMs directly in your Python code:
+
+    ```python
+    from crewai import LLM
+
+    # Basic configuration
+    llm = LLM(model="gpt-4")
+
+    # Advanced configuration with detailed parameters
+    llm = LLM(
+        model="gpt-4o-mini",
+        temperature=0.7,        # Higher for more creative outputs
+        timeout=120,           # Seconds to wait for response
+        max_tokens=4000,       # Maximum length of response
+        top_p=0.9,            # Nucleus sampling parameter
+        frequency_penalty=0.1, # Reduce repetition
+        presence_penalty=0.1,  # Encourage topic diversity
+        response_format={"type": "json"},  # For structured outputs
+        seed=42               # For reproducible results
+    )
+    ```
+
+    <Info>
+      Parameter explanations:
+      - `temperature`: Controls randomness (0.0-1.0)
+      - `timeout`: Maximum wait time for response
+      - `max_tokens`: Limits response length
+      - `top_p`: Alternative to temperature for sampling
+      - `frequency_penalty`: Reduces word repetition
+      - `presence_penalty`: Encourages new topics
+      - `response_format`: Specifies output structure
+      - `seed`: Ensures consistent outputs
+    </Info>
+  </Tab>
+</Tabs>
+
+## Provider Configuration Examples
+
+
+CrewAI supports a multitude of LLM providers, each offering unique features, authentication methods, and model capabilities. 
+In this section, you'll find detailed examples that help you select, configure, and optimize the LLM that best fits your project's needs.
+
+<AccordionGroup>
+  <Accordion title="OpenAI">
+    Set the following environment variables in your `.env` file:
+
+    ```toml Code
+    # Required
+    OPENAI_API_KEY=sk-...
+    
+    # Optional
+    OPENAI_API_BASE=<custom-base-url>
+    OPENAI_ORGANIZATION=<your-org-id>
+    ```
+
+    Example usage in your CrewAI project:
+    ```python Code
+    from crewai import LLM
+
+    llm = LLM(
+        model="openai/gpt-4", # call model by provider/model_name
+        temperature=0.8,
+        max_tokens=150,
+        top_p=0.9,
+        frequency_penalty=0.1,
+        presence_penalty=0.1,
+        stop=["END"],
+        seed=42
+    )
+    ```
+
+    OpenAI is one of the leading providers of LLMs with a wide range of models and features.
+
+    | Model               | Context Window   | Best For                                      |
+    |---------------------|------------------|-----------------------------------------------|
+    | GPT-4               | 8,192 tokens     | High-accuracy tasks, complex reasoning        |
+    | GPT-4 Turbo         | 128,000 tokens   | Long-form content, document analysis          |
+    | GPT-4o & GPT-4o-mini  | 128,000 tokens  | Cost-effective large context processing       |
+    | o3-mini             | 200,000 tokens   | Fast reasoning, complex reasoning             |
+    | o1-mini             | 128,000 tokens   | Fast reasoning, complex reasoning             |
+    | o1-preview          | 128,000 tokens   | Fast reasoning, complex reasoning             |
+    | o1                  | 200,000 tokens   | Fast reasoning, complex reasoning             |
+  </Accordion>
+
+  <Accordion title="Anthropic">
+    ```toml Code
+    ANTHROPIC_API_KEY=sk-ant-...
+    ```
+
+    Example usage in your CrewAI project:
+    ```python Code
+    llm = LLM(
+        model="anthropic/claude-3-sonnet-20240229-v1:0",
+        temperature=0.7
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Google">
+    Set the following environment variables in your `.env` file:
+
+    ```toml Code
+    # Option 1: Gemini accessed with an API key.
+    # https://ai.google.dev/gemini-api/docs/api-key
+    GEMINI_API_KEY=<your-api-key>
+
+    # Option 2: Vertex AI IAM credentials for Gemini, Anthropic, and Model Garden.
+    # https://cloud.google.com/vertex-ai/generative-ai/docs/overview
+    ```
+
+    Get credentials from your Google Cloud Console and save it to a JSON file with the following code:
+    ```python Code
+    import json
+
+    file_path = 'path/to/vertex_ai_service_account.json'
+
+    # Load the JSON file
+    with open(file_path, 'r') as file:
+        vertex_credentials = json.load(file)
+
+    # Convert the credentials to a JSON string
+    vertex_credentials_json = json.dumps(vertex_credentials)
+    ```
+
+    Example usage in your CrewAI project:
+    ```python Code
+    from crewai import LLM
+
+    llm = LLM(
+        model="gemini/gemini-1.5-pro-latest",
+        temperature=0.7,
+        vertex_credentials=vertex_credentials_json
+    )
+    ```
+    Google offers a range of powerful models optimized for different use cases:
+
+    | Model                  | Context Window | Best For                                                          |
+    |-----------------------|----------------|------------------------------------------------------------------|
+    | gemini-2.0-flash-exp  | 1M tokens      | Higher quality at faster speed, multimodal model, good for most tasks |
+    | gemini-1.5-flash      | 1M tokens      | Balanced multimodal model, good for most tasks                    |
+    | gemini-1.5-flash-8B   | 1M tokens      | Fastest, most cost-efficient, good for high-frequency tasks       |
+    | gemini-1.5-pro        | 2M tokens      | Best performing, wide variety of reasoning tasks including logical reasoning, coding, and creative collaboration |
+  </Accordion>
+
+  <Accordion title="Azure">
+    ```toml Code
+    # Required
+    AZURE_API_KEY=<your-api-key>
+    AZURE_API_BASE=<your-resource-url>
+    AZURE_API_VERSION=<api-version>
+    
+    # Optional
+    AZURE_AD_TOKEN=<your-azure-ad-token>
+    AZURE_API_TYPE=<your-azure-api-type>
+    ```
+
+    Example usage in your CrewAI project:
+    ```python Code
+    llm = LLM(
+        model="azure/gpt-4",
+        api_version="2023-05-15"
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="AWS Bedrock">
+    ```toml Code
+    AWS_ACCESS_KEY_ID=<your-access-key>
+    AWS_SECRET_ACCESS_KEY=<your-secret-key>
+    AWS_DEFAULT_REGION=<your-region>
+    ```
+
+    Example usage in your CrewAI project:
+    ```python Code
+    llm = LLM(
+        model="bedrock/anthropic.claude-3-sonnet-20240229-v1:0"
+    )
