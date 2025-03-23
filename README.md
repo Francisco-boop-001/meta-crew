@@ -38,4 +38,4 @@ The workflow of the Meta-Crew is sequential:
 This Meta-Crew blueprint is designed to serve as a robust foundation for developing specialized Crews. It guarantees that every design is thoroughly informed by the CrewAI framework, from internal knowledge integration to rigorous validation of the final blueprint. Use it to streamline your AI teams and ensure your solutions are both robust and maintainable.
 
 ---
-Enjoy building with CrewAI!
+This is a pre-alpha version. I'm working on it as it is. Please be advised of this. 
