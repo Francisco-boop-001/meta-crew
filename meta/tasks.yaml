@@ -1,19 +1,19 @@
 interpret_request_task:
-  description: "Parse and fully interpret the user's crew design request into a structured technical specification."
-  expected_output: "A clear and detailed technical specification outlining requirements for the specialized Crew."
+  description: "Parse and fully interpret the user's crew design request: '{request}' into a structured technical specification."
+  expected_output: "A clear and detailed technical specification outlining requirements for the specialized Crew, following CrewAI's implementation patterns."
   agent: "knowledge_specialist"
 
 research_task:
-  description: "Conduct targeted research to gather implementable, verifiable strategies from external resources."
-  expected_output: "A detailed research report with integration strategies and best practices."
+  description: "Conduct targeted research to gather implementable, verifiable strategies from external resources for the request: '{request}'."
+  expected_output: "A detailed research report with concrete CrewAI implementation strategies and code patterns."
   agent: "research_analyst"
 
 design_task:
-  description: "Design executable YAML configurations and Python code structure for the specialized Crew based on the technical specification and research findings."
-  expected_output: "A complete blueprint in YAML and Python for the new specialized Crew."
+  description: "Create working Python code and YAML configuration files for a specialized Crew that fulfills: '{request}' based on the technical specification and research findings. The code and YAML files must be complete, executable, and follow CrewAI framework patterns exactly."
+  expected_output: "Complete, runnable implementation with Python code files and YAML configuration files for agents and tasks that implement the specialized Crew using the CrewAI framework. Include both agent definitions and a main script to demonstrate execution."
   agent: "systems_architect"
 
 validation_task:
-  description: "Review and validate the blueprint to ensure strict adherence to CrewAI framework best practices and coding guidelines."
-  expected_output: "A validated and approved blueprint for the specialized Crew."
+  description: "Review and validate the Python code and YAML configuration files for '{request}' to ensure they strictly adhere to CrewAI framework best practices, are fully executable, and follow proper implementation patterns."
+  expected_output: "Final validated versions of the Python code and YAML configuration files with any necessary corrections to ensure they work correctly and follow all CrewAI best practices."
   agent: "validator"
